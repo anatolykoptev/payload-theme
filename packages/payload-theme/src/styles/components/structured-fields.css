@@ -1,0 +1,372 @@
+/* ==================================================================== *
+ * STRUCTURED FIELDS — blocks, arrays, collapsibles (unified list v3)
+ *
+ * Blocks/array rows no longer float as separate cards: the rows container
+ * is ONE bordered list card and each row is a hairline-divided entry —
+ * grip, muted tabular number, a neutral block-type icon tile, the title,
+ * and ghost (borderless) kebab + chevron actions. Standalone collapsible
+ * FIELDS keep the bordered card look. The add-row action stays the
+ * full-width dashed bar (CONTROLS module). Behavior — toggle, drag,
+ * kebab, inline editing — is untouched.
+ * ==================================================================== */
+@layer payload {
+  /* ---- standalone collapsible fields: still a card ---- */
+  .collapsible {
+    border-radius: var(--pt-radius-card);
+    overflow: hidden;
+  }
+
+  /* The `overflow: hidden` above (and on the block/array list card below) is
+   * what clips the rounded corners — but it also clips any `select`
+   * (react-select) menu that opens inside the card, because Payload renders
+   * the menu INLINE, not into a portal (its `.rs__menu` z-index is only 4).
+   * The menu only exists in the DOM while it's open, so `:has(.rs__menu)`
+   * lifts the clip ONLY while a select is open — corner clipping is preserved
+   * at rest — and only for the card that actually contains the open menu.
+   * (The menu's own z-index lift lives with its styling in forms.css.) */
+  .collapsible:has(.rs__menu),
+  .blocks-field__rows:has(.rs__menu),
+  .array-field__draggable-rows:has(.rs__menu) {
+    overflow: visible;
+  }
+  .collapsible--style-default {
+    border: 1px solid var(--theme-border-color);
+    background: var(--theme-elevation-0);
+    box-shadow: var(--pt-shadow-xs);
+  }
+  html[data-theme='dark'] .collapsible--style-default {
+    background: color-mix(in srgb, #fff 2%, var(--theme-elevation-50));
+    border-color: var(--theme-elevation-150);
+  }
+
+  /* ---- blocks/array rows: ONE list card, rows divided by hairlines ---- */
+  .blocks-field__rows,
+  .array-field__draggable-rows {
+    gap: 0; /* stock puts air between rows; the hairlines divide instead */
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    background: var(--theme-elevation-0);
+    box-shadow: var(--pt-shadow-xs);
+    overflow: hidden;
+  }
+  /* dark: the list sits one step ABOVE the form card — never a darker well */
+  html[data-theme='dark'] .blocks-field__rows,
+  html[data-theme='dark'] .array-field__draggable-rows {
+    background: color-mix(in srgb, #fff 2%, var(--theme-elevation-50));
+    border-color: var(--theme-elevation-150);
+  }
+
+  /* rows inside the list shed all card chrome */
+  .blocks-field__rows .collapsible,
+  .array-field__draggable-rows .collapsible {
+    border-radius: 0;
+  }
+  .blocks-field__rows .collapsible--style-default,
+  .array-field__draggable-rows .collapsible--style-default,
+  html[data-theme='dark'] .blocks-field__rows .collapsible--style-default,
+  html[data-theme='dark'] .array-field__draggable-rows .collapsible--style-default {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  /* hairline between entries (the wrapper divs are the direct children) */
+  .blocks-field__rows > div + div,
+  .array-field__draggable-rows > div + div {
+    border-top: 1px solid var(--theme-elevation-100);
+  }
+  html[data-theme='dark'] .blocks-field__rows > div + div,
+  html[data-theme='dark'] .array-field__draggable-rows > div + div {
+    border-top-color: color-mix(in srgb, var(--theme-elevation-100) 55%, var(--theme-elevation-150));
+  }
+
+  /* dark: fields nested in LIFTED surfaces (row lists, group panels) sit
+   * FLAT on them — transparent boxes with their borders doing the work,
+   * never darker wells punched back into the raised surface. Wins over
+   * the forms-module focus background too (higher specificity, later in
+   * the cascade), so fields stay flat while being edited. */
+  html[data-theme='dark']
+    :is(.blocks-field__rows, .array-field__draggable-rows, .group-field--top-level)
+    :is(
+      .field-type input:not([type='checkbox']):not(.section-title__input),
+      .field-type textarea,
+      .rs__control,
+      .upload-field-card
+    ) {
+    background: transparent;
+  }
+  html[data-theme='dark']
+    :is(.blocks-field__rows, .array-field__draggable-rows, .group-field--top-level)
+    .upload-field-card {
+    border: 1px solid var(--pt-input-border);
+  }
+
+  /* the row being edited: a quiet neutral wash instead of a card ring */
+  .blocks-field__rows .collapsible--style-default:focus-within,
+  .array-field__draggable-rows .collapsible--style-default:focus-within {
+    background: color-mix(in srgb, var(--theme-elevation-500) 4%, transparent);
+  }
+
+  /* ---- composed header ---- */
+  .collapsible--style-default > .collapsible__toggle-wrap {
+    background: transparent;
+    padding: 9px 10px 9px 14px;
+    gap: 10px;
+    transition: background-color 0.12s ease;
+  }
+  .collapsible--style-default > .collapsible__toggle-wrap:hover {
+    background: color-mix(in srgb, var(--theme-elevation-500) 4%, transparent);
+  }
+
+  /* body joins through a hairline; the list bg shows through */
+  .collapsible__content {
+    background: transparent;
+    border-top: 1px solid var(--theme-elevation-100);
+    padding: 20px 18px;
+  }
+  html[data-theme='dark'] .blocks-field__rows .collapsible__content,
+  html[data-theme='dark'] .array-field__draggable-rows .collapsible__content {
+    border-top-color: color-mix(in srgb, var(--theme-elevation-100) 55%, var(--theme-elevation-150));
+  }
+
+  /* grip dots: quiet, wake on hover */
+  .collapsible__drag {
+    color: var(--theme-elevation-350);
+    transition: color 0.12s ease;
+  }
+  .collapsible__drag:hover {
+    color: var(--theme-elevation-700);
+  }
+
+  /* chevron + kebab: ghost icon buttons — no borders, no shadows */
+  .collapsible__indicator {
+    width: 26px;
+    height: 26px;
+    border: 0;
+    border-radius: var(--pt-radius-item);
+    background: transparent;
+    box-shadow: none;
+    color: var(--theme-elevation-450);
+  }
+  .collapsible__toggle-wrap .popup-button {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: var(--pt-radius-item);
+    background: transparent;
+    box-shadow: none;
+    color: var(--theme-elevation-450);
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+  }
+  .collapsible__toggle-wrap .popup-button:hover,
+  .collapsible__toggle-wrap .popup-button:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 12%, transparent);
+    color: var(--theme-text);
+  }
+  .collapsible__actions-wrap {
+    gap: 2px;
+  }
+
+  /* ---- blocks row header: № · icon tile · type title · ghost label ---- */
+  .blocks-field__block-header {
+    align-items: center;
+    gap: 12px;
+  }
+  /* the row number: muted tabular text — order info, not an accent chip */
+  .blocks-field__block-number {
+    min-width: 18px;
+    text-align: center;
+    color: var(--color-base-400);
+    font-size: var(--pt-text-xs);
+    font-weight: 550;
+    font-variant-numeric: tabular-nums;
+  }
+  html[data-theme='dark'] .blocks-field__block-number {
+    color: var(--color-base-550);
+  }
+
+  /* the block type reads as the row TITLE behind a neutral icon tile.
+   * Payload puts the slug on the pill (blocks-field__block-pill-<slug>),
+   * so per-block icons are a --pt-block-ico override away; unknown slugs
+   * fall back to the generic layers glyph. */
+  .blocks-field__block-pill,
+  .blocks-field__block-pill.pill--style-light {
+    --pt-block-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z'/%3E%3Cpath d='m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65'/%3E%3Cpath d='m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65'/%3E%3C/svg%3E");
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 0 0 38px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--theme-text);
+    font-size: var(--pt-text-base);
+    font-weight: 550;
+    line-height: 1.5;
+  }
+  .blocks-field__block-pill::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    translate: 0 -50%;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--pt-radius-item);
+    background: var(--theme-elevation-100);
+  }
+  .blocks-field__block-pill::after {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 50%;
+    translate: 0 -50%;
+    width: 14px;
+    height: 14px;
+    background: var(--color-base-550);
+    -webkit-mask: var(--pt-block-ico) center / contain no-repeat;
+    mask: var(--pt-block-ico) center / contain no-repeat;
+  }
+  html[data-theme='dark'] .blocks-field__block-pill::before {
+    background: var(--theme-elevation-150);
+  }
+  html[data-theme='dark'] .blocks-field__block-pill::after {
+    background: var(--color-base-400);
+  }
+  /* built-in glyphs for common slugs — projects add theirs the same way */
+  .blocks-field__block-pill-content {
+    --pt-block-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 6.1H3'/%3E%3Cpath d='M21 12.1H3'/%3E%3Cpath d='M15.1 18H3'/%3E%3C/svg%3E");
+  }
+  .blocks-field__block-pill-cta {
+    --pt-block-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 11 18-5v12L3 14v-3z'/%3E%3Cpath d='M11.6 16.8a3 3 0 1 1-5.8-1.6'/%3E%3C/svg%3E");
+  }
+  .blocks-field__block-pill-hero {
+    --pt-block-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='9' cy='9' r='2'/%3E%3Cpath d='m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21'/%3E%3C/svg%3E");
+  }
+
+  /* array row labels ("Image 01") — same title voice */
+  .array-field__row-header {
+    gap: 10px;
+  }
+  .row-label {
+    font-size: var(--pt-text-base);
+    font-weight: 550;
+    color: var(--theme-text);
+  }
+
+  /* the inline title editor ("Untitled"): a ghost SUBTITLE — text at rest,
+   * a soft field while editing. (Excluded from the generic input chrome.) */
+  .section-title__input {
+    font-weight: 450;
+    font-size: var(--pt-text-sm);
+    color: var(--theme-elevation-500);
+    border: 0;
+    border-radius: 6px;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+  }
+  .section-title__input:hover {
+    color: var(--theme-elevation-700);
+  }
+  .section-title__input:focus,
+  .section-title__input:focus-visible {
+    outline: none;
+    border: 0;
+    box-shadow: none;
+    background: color-mix(in srgb, var(--theme-elevation-500) 8%, transparent);
+    color: var(--theme-text);
+  }
+
+  /* ---- field header: a stronger section voice + chip actions ---- */
+  .array-field__title .field-label,
+  .blocks-field__heading-with-error .field-label {
+    font-size: var(--pt-text-sm);
+    font-weight: 600;
+    color: var(--theme-text);
+  }
+  .array-field__header-actions,
+  .blocks-field__header-actions {
+    align-items: center;
+    gap: 4px;
+  }
+  button.array-field__header-action,
+  button.blocks-field__header-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: var(--pt-radius-item);
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+    color: var(--theme-elevation-500);
+    cursor: pointer;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+  }
+  button.array-field__header-action:hover,
+  button.array-field__header-action:focus-visible,
+  button.blocks-field__header-action:hover,
+  button.blocks-field__header-action:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 8%, transparent);
+    color: var(--theme-text);
+  }
+  /* Collapse All / Show All get their glyphs (order: collapse, show, ⋯) */
+  .array-field__header-actions li:nth-child(1) > button::before,
+  .array-field__header-actions li:nth-child(2) > button::before,
+  .blocks-field__header-actions li:nth-child(1) > button::before,
+  .blocks-field__header-actions li:nth-child(2) > button::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    background: currentColor;
+    -webkit-mask: var(--pt-ico) center / contain no-repeat;
+    mask: var(--pt-ico) center / contain no-repeat;
+  }
+  .array-field__header-actions li:nth-child(1) > button,
+  .blocks-field__header-actions li:nth-child(1) > button {
+    --pt-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 20 5-5 5 5'/%3E%3Cpath d='m7 4 5 5 5-5'/%3E%3C/svg%3E");
+  }
+  .array-field__header-actions li:nth-child(2) > button,
+  .blocks-field__header-actions li:nth-child(2) > button {
+    --pt-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5'/%3E%3Cpath d='m7 9 5-5 5 5'/%3E%3C/svg%3E");
+  }
+
+  /* ---- "Add Layout" drawer: block-type pickers as shadcn cards ---- */
+  .thumbnail-card {
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-xs);
+    overflow: hidden;
+    transition:
+      border-color 0.12s ease,
+      box-shadow 0.12s ease,
+      transform 0.12s ease;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .thumbnail-card:hover {
+      transform: translateY(-1px);
+    }
+  }
+  html[data-theme='dark'] .thumbnail-card {
+    background: var(--theme-elevation-100);
+  }
+  .thumbnail-card:hover,
+  .thumbnail-card:focus-visible {
+    border-color: color-mix(in srgb, var(--pt-accent) 45%, var(--theme-border-color));
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--pt-accent) 25%, transparent),
+      var(--pt-shadow-sm);
+  }
+  .thumbnail-card__label {
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+  }
+}

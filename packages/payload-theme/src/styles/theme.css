@@ -1,0 +1,59 @@
+/*
+ * payload-theme — the static restyle layer.
+ *
+ * Everything lives in @layer payload. Payload ships its defaults in
+ * @layer payload-default and pre-declares the order `payload-default, payload`,
+ * so our rules win the cascade without a specificity fight or !important.
+ *
+ * The accent scale (--pt-accent-*) is NOT here — the plugin computes it from
+ * your `accent` option and injects it at runtime (ThemeProvider), so a single
+ * hex recolours every rule below.
+ *
+ * DESIGN LANGUAGE — shadcn "inset" admin:
+ *   · the page background is a quiet zinc gray; the sidebar sits directly on
+ *     it (no chrome of its own)
+ *   · ALL content lives in one white, rounded, bordered card floating on that
+ *     gray, with a sticky translucent header at its top
+ *   · neutrals are the zinc scale; borders are thin and calm; shadows follow
+ *     the shadcn xs/sm/md/lg steps; hovers are neutral washes — the accent is
+ *     reserved for primary actions, active nav and focus.
+ */
+
+/*
+ * MODULE INDEX — the build inlines these imports (in this exact order) into
+ * the single dist/styles/theme.css consumers load. Order matters: unlayered
+ * overrides must stay last, and files concatenate into one cascade.
+ */
+@import './base/foundation.css';
+@import './components/buttons.css';
+@import './components/forms.css';
+@import './components/table.css';
+@import './components/misc.css';
+@import './components/nav.css';
+@import './layout/frame.css';
+@import './components/dashboard.css';
+@import './components/header-actions.css';
+@import './components/locale-menu.css';
+@import './components/controls.css';
+@import './components/doc-chrome.css';
+@import './components/media.css';
+@import './components/list-row-actions.css';
+@import './components/feedback.css';
+@import './components/auth-screens.css';
+@import './components/versions.css';
+@import './components/polish.css';
+@import './layout/responsive.css';
+@import './layout/content.css';
+@import './components/login-hero.css';
+@import './components/nav-search.css';
+@import './components/command-palette.css';
+@import './components/doc-outline.css';
+@import './components/list-empty.css';
+@import './base/motion.css';
+@import './components/structured-fields.css';
+@import './layout/form-grid.css';
+@import './components/doc-controls.css';
+@import './layout/list-header.css';
+@import './components/media-grid.css';
+@import './components/density.css';
+@import './overrides/unlayered.css';

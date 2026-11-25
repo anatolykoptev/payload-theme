@@ -1,0 +1,656 @@
+/* ==================================================================== *
+ * HEADER ACTIONS — theme customizer, light/dark toggle, user menu
+ *
+ * Rendered by the HeaderActions component through `admin.components.actions`
+ * into the app header's right side. The customizer panel and the user menu
+ * are absolutely-positioned popovers dropping below the header.
+ * ==================================================================== */
+@layer payload {
+  .pt-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ---- quiet 34px ghost icon buttons (palette, sun/moon) ---- */
+  .pt-header-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: var(--pt-radius-ctl);
+    color: var(--theme-elevation-600);
+    cursor: pointer;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+
+    svg {
+      width: 17px;
+      height: 17px;
+    }
+  }
+  .pt-header-btn:hover,
+  .pt-header-btn:focus-visible,
+  .pt-header-btn[aria-expanded='true'] {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+    color: var(--theme-text);
+  }
+  .pt-header-btn:focus-visible {
+    outline: none;
+  }
+
+  /* ---- desktop sidebar collapse chip ----
+   * Rendered inside .pt-header-actions (right side) but pinned to the
+   * header row's LEFT edge — same row as the other chips, so it stays
+   * vertically aligned with them in every scroll state. The open chip
+   * shows aria-expanded styling like any popover trigger; suppress it. */
+  .pt-nav-collapse {
+    position: absolute;
+    inset-inline-start: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  /* Payload's actions wrapper is position:relative and would trap the
+   * absolutely-positioned chip on the right — release it so the chip
+   * anchors to the full-width .app-header__content row instead. */
+  .app-header__actions-wrapper {
+    position: static;
+  }
+  .pt-nav-collapse[aria-expanded='true']:not(:hover):not(:focus-visible) {
+    background: transparent;
+    color: var(--theme-elevation-600);
+  }
+  .pt-nav-collapse:active {
+    transform: translateY(calc(-50% + 1px));
+  }
+  @media (max-width: 1440px) {
+    .pt-nav-collapse {
+      display: none; /* the mobile drawer brings its own toggler */
+    }
+  }
+
+  /* ---- customizer popover ---- */
+  .pt-custom {
+    position: relative;
+  }
+  .pt-custom__panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    inset-inline-end: 0;
+    z-index: 80;
+    width: min(308px, calc(100vw - 32px));
+    max-height: calc(100vh - var(--app-header-height, 64px) - 32px);
+    /* dvh: on phones 100vh includes the hidden browser chrome, which pushed
+     * the panel's bottom (footer buttons) off-screen */
+    max-height: calc(100dvh - var(--app-header-height, 64px) - 32px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px;
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-lg);
+    white-space: normal;
+  }
+  html[data-theme='dark'] .pt-custom__panel {
+    background: var(--theme-elevation-50);
+  }
+  /* Phones: the palette button is not the header's last chip (sun/moon and
+   * the avatar sit to its right), so a panel right-aligned to the button ran
+   * off the screen's LEFT edge. Release the button's positioning and span
+   * the panel across the header row instead, a 12px gutter each side. */
+  @media (max-width: 768px) {
+    .pt-custom {
+      position: static;
+    }
+    .pt-custom__panel {
+      top: calc(100% + 6px);
+      inset-inline: 12px;
+      width: auto;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .pt-custom__panel {
+      animation: pt-user-menu-in 0.13s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+  }
+
+  .pt-custom__section {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .pt-custom__label {
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+    color: var(--theme-elevation-500);
+  }
+
+  /* preset tiles: one-click full themes (accent + radius + font) — a
+   * 3-per-row grid of quiet chips, each led by its accent dot; the active
+   * preset gets an accent ring like the swatches */
+  .pt-custom__presets {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .pt-custom__preset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 6px;
+    background: var(--theme-elevation-50);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-item);
+    color: var(--theme-elevation-600);
+    font-size: var(--pt-text-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color 0.12s ease,
+      border-color 0.12s ease,
+      color 0.12s ease;
+  }
+  html[data-theme='dark'] .pt-custom__preset {
+    background: var(--theme-elevation-100);
+  }
+  .pt-custom__preset:hover {
+    background: var(--theme-elevation-100);
+    color: var(--theme-text);
+  }
+  html[data-theme='dark'] .pt-custom__preset:hover {
+    background: var(--theme-elevation-150);
+  }
+  .pt-custom__preset--active,
+  .pt-custom__preset--active:hover {
+    border-color: var(--pt-accent);
+    background: color-mix(in srgb, var(--pt-accent) 8%, transparent);
+    color: var(--theme-text);
+  }
+  .pt-custom__preset-dot {
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  }
+  html[data-theme='dark'] .pt-custom__preset-dot {
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+  }
+
+  /* font tiles: each label renders in its own typeface — the button IS the
+   * preview */
+  .pt-custom__fonts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .pt-custom__font {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 6px;
+    background: var(--theme-elevation-50);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-item);
+    color: var(--theme-elevation-600);
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color 0.12s ease,
+      border-color 0.12s ease,
+      color 0.12s ease;
+  }
+  html[data-theme='dark'] .pt-custom__font {
+    background: var(--theme-elevation-100);
+  }
+  .pt-custom__font:hover {
+    background: var(--theme-elevation-100);
+    color: var(--theme-text);
+  }
+  html[data-theme='dark'] .pt-custom__font:hover {
+    background: var(--theme-elevation-150);
+  }
+  .pt-custom__font--active,
+  .pt-custom__font--active:hover {
+    border-color: var(--pt-accent);
+    background: color-mix(in srgb, var(--pt-accent) 8%, transparent);
+    color: var(--theme-text);
+  }
+
+  /* accent swatches: a tidy 5-per-row grid of rounded color tiles; the
+   * active tile carries a white check and a ring in its own color (picking
+   * it makes that color THE accent, so the ring self-updates) */
+  .pt-custom__swatches {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .pt-custom__swatch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.1);
+    transition:
+      transform 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  html[data-theme='dark'] .pt-custom__swatch {
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+  }
+  .pt-custom__swatch:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 0 0 1px rgb(0 0 0 / 0.1),
+      0 2px 6px rgb(0 0 0 / 0.18);
+  }
+  .pt-custom__swatch--active,
+  .pt-custom__swatch--active:hover {
+    transform: none;
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.2),
+      0 0 0 2px var(--theme-elevation-0),
+      0 0 0 4px var(--pt-accent);
+  }
+  html[data-theme='dark'] .pt-custom__swatch--active,
+  html[data-theme='dark'] .pt-custom__swatch--active:hover {
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.2),
+      0 0 0 2px var(--theme-elevation-50),
+      0 0 0 4px var(--pt-accent);
+  }
+  /* white check on the active tile */
+  .pt-custom__swatch--active::after {
+    content: '';
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.35));
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+
+  /* custom hex: ONE field — a live color dot inside the input box */
+  .pt-custom__hex {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    height: 34px;
+    padding: 0 11px;
+    background: var(--theme-input-bg);
+    border: 1px solid var(--pt-input-border);
+    border-radius: 8px;
+    transition:
+      border-color 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  .pt-custom__hex:focus-within {
+    border-color: var(--pt-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pt-accent-ring) 18%, transparent);
+  }
+  .pt-custom__hex-preview {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  }
+  html[data-theme='dark'] .pt-custom__hex-preview {
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+  }
+  .pt-custom__hex-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    outline: none;
+    box-shadow: none;
+    color: var(--theme-text);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: var(--pt-text-sm);
+    letter-spacing: 0.02em;
+  }
+  .pt-custom__hex-input::placeholder {
+    color: var(--theme-elevation-400);
+  }
+  .pt-custom__hex-input:focus,
+  .pt-custom__hex-input:focus-visible {
+    outline: none;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* segmented rows (radius / color mode / layout) — the shadcn Tabs track */
+  .pt-custom__segments {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    padding: 3px;
+    background: var(--theme-elevation-100);
+    border-radius: var(--pt-radius-ctl);
+  }
+  html[data-theme='dark'] .pt-custom__segments {
+    background: var(--theme-elevation-100);
+  }
+  .pt-custom__segment {
+    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 4px;
+    border: 0;
+    background: transparent;
+    border-radius: calc(var(--pt-radius-ctl) - 2px);
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-xs);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+
+    svg {
+      width: 13px;
+      height: 13px;
+    }
+  }
+  .pt-custom__segment:hover {
+    color: var(--theme-text);
+  }
+  .pt-custom__segment--active {
+    background: var(--theme-elevation-0);
+    color: var(--theme-text);
+    box-shadow: var(--pt-shadow-xs);
+  }
+  html[data-theme='dark'] .pt-custom__segment--active {
+    background: var(--theme-elevation-200);
+  }
+
+  /* footer: Copy config (outline) + Reset (solid) side by side */
+  .pt-custom__footer {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* copy: outline twin of the reset button; flips to a check when copied */
+  .pt-custom__copy {
+    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-ctl);
+    background: transparent;
+    color: var(--theme-text);
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color 0.12s ease,
+      border-color 0.12s ease,
+      color 0.12s ease;
+
+    svg {
+      width: 13px;
+      height: 13px;
+    }
+  }
+  .pt-custom__copy:hover {
+    background: color-mix(in srgb, var(--theme-elevation-500) 8%, transparent);
+  }
+  .pt-custom__copy--done,
+  .pt-custom__copy--done:hover {
+    border-color: var(--pt-accent);
+    color: var(--pt-accent);
+    background: color-mix(in srgb, var(--pt-accent) 8%, transparent);
+  }
+
+  /* reset: the one solid (auto-inverting) action in the panel */
+  .pt-custom__reset {
+    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: var(--pt-radius-ctl);
+    background: var(--theme-elevation-1000);
+    color: var(--theme-elevation-0);
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.12s ease;
+
+    svg {
+      width: 13px;
+      height: 13px;
+    }
+  }
+  .pt-custom__reset:hover {
+    opacity: 0.85;
+  }
+
+  /* ---- header user chip + downward menu (mirrors the sidebar block) ---- */
+  .pt-header-user {
+    position: relative;
+    margin-inline-start: 2px;
+  }
+  .pt-header-user-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px 4px 4px;
+    background: transparent;
+    border: 0;
+    border-radius: var(--pt-radius-ctl);
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.12s ease;
+  }
+  .pt-header-user-trigger:hover,
+  .pt-header-user-trigger:focus-visible,
+  .pt-header-user-trigger[aria-expanded='true'] {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+  }
+  .pt-header-user-trigger:focus-visible {
+    outline: none;
+  }
+  .pt-header-user-avatar {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px; /* always a circle, radius-agnostic */
+    background: var(--pt-accent);
+    color: var(--pt-accent-contrast);
+    font-size: var(--pt-text-3xs);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  /* Same treatment as the sidebar block when the avatar is real artwork. */
+  .pt-header-user-avatar--image {
+    background: none;
+    overflow: hidden;
+  }
+  .pt-header-user-avatar--image > * {
+    width: 100%;
+    height: 100%;
+  }
+  .pt-header-user-avatar--image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    object-fit: cover;
+  }
+  .pt-header-user-info {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+  .pt-header-user-name {
+    font-size: var(--pt-text-base);
+    font-weight: 550;
+    color: var(--theme-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+  }
+  /* email only in the dropdown, not in the compact chip */
+  .pt-header-user-trigger .pt-header-user-email {
+    display: none;
+  }
+  .pt-header-user-chevron {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    color: var(--theme-elevation-500);
+  }
+  /* tight screens: avatar-only chip */
+  @media (max-width: 900px) {
+    .pt-header-user-trigger .pt-header-user-info,
+    .pt-header-user-trigger .pt-header-user-chevron {
+      display: none;
+    }
+  }
+
+  .pt-header-user-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    inset-inline-end: 0;
+    z-index: 80;
+    width: 236px;
+    padding: 4px;
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-md);
+    white-space: normal;
+  }
+  html[data-theme='dark'] .pt-header-user-menu {
+    background: var(--theme-elevation-50);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .pt-header-user-menu {
+      animation: pt-user-menu-in 0.13s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+  }
+  .pt-header-user-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+  }
+  .pt-header-user-menu .pt-header-user-name {
+    max-width: none;
+  }
+  .pt-header-user-email {
+    font-size: var(--pt-text-xs);
+    color: var(--theme-elevation-500);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pt-header-user-menu-sep {
+    height: 1px;
+    margin: 4px -4px;
+    background: var(--theme-elevation-100);
+  }
+  .pt-header-user-menu-label {
+    padding: 6px 8px 2px;
+    font-size: var(--pt-text-3xs);
+    font-weight: 500;
+    color: var(--theme-elevation-500);
+  }
+  .pt-header-user-menu-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 0;
+    background: none;
+    border-radius: var(--pt-radius-item);
+    font-size: var(--pt-text-base);
+    font-weight: 450;
+    color: var(--theme-text);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color 0.1s ease,
+      color 0.1s ease;
+
+    svg {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      color: var(--theme-elevation-500);
+    }
+  }
+  .pt-header-user-menu-item:hover,
+  .pt-header-user-menu-item:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+    color: var(--theme-text);
+    text-decoration: none;
+  }
+  .pt-header-user-menu-item:focus-visible {
+    outline: none;
+  }
+  .pt-header-user-menu-item:disabled {
+    cursor: default;
+    color: var(--theme-text);
+  }
+  .pt-header-user-menu-item:disabled:hover {
+    background: none;
+  }
+  .pt-header-user-menu-check {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+
+    svg {
+      width: 14px;
+      height: 14px;
+      color: var(--pt-accent);
+    }
+  }
+  .pt-header-user-menu-item--logout:hover,
+  .pt-header-user-menu-item--logout:focus-visible {
+    background: color-mix(in srgb, var(--theme-error-500) 12%, transparent);
+    color: var(--theme-error-600);
+
+    svg {
+      color: var(--theme-error-600);
+    }
+  }
+}

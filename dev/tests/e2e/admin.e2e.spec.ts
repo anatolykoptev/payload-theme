@@ -1,0 +1,195 @@
+import { execSync } from 'node:child_process'
+
+import { test, expect, Page } from '@playwright/test'
+import { login } from '../helpers/login'
+import { seedTestUser, cleanupTestUser, clearCollection, testUser } from '../helpers/seedUser'
+
+test.describe('Admin Panel', () => {
+  let page: Page
+
+  test.beforeAll(async ({ browser }) => {
+    // Demo content first (fresh CI databases start empty; the posts list
+    // below must have rows), then the e2e login user.
+    execSync('pnpm seed', { stdio: 'inherit' })
+    await seedTestUser()
+
+    // Wide enough for the always-on desktop sidebar (drawer mode starts ≤1440px).
+    const context = await browser.newContext({ viewport: { height: 1000, width: 1600 } })
+    page = await context.newPage()
+
+    await login({ page, user: testUser })
+  })
+
+  test.afterAll(async () => {
+    await cleanupTestUser()
+  })
+
+  test('can navigate to dashboard', async () => {
+    await page.goto('http://localhost:3000/admin')
+    await expect(page).toHaveURL('http://localhost:3000/admin')
+    const dashboardArtifact = page.locator('.pt-dash__grid').first()
+    await expect(dashboardArtifact).toBeVisible()
+  })
+
+  test('renders no widget area or recent activity feed by default', async () => {
+    await page.goto('http://localhost:3000/admin')
+    await expect(page.locator('.pt-dash__grid')).toBeVisible()
+    await expect(page.locator('.pt-dash__widgets')).toHaveCount(0)
+    await expect(page.getByText('Recent activity')).toHaveCount(0)
+  })
+
+  test('sidebar user menu replaces the header account button and locale switcher', async () => {
+    await page.goto('http://localhost:3000/admin')
+
+    // trigger at the bottom of the sidebar
+    const trigger = page.locator('.pt-nav__user-trigger')
+    await expect(trigger).toBeVisible()
+    await expect(trigger.locator('.pt-nav__user-email')).toHaveText(testUser.email)
+
+    // the header is empty: account button and locale switcher both hidden
+    await expect(page.locator('.app-header__account')).toBeHidden()
+    await expect(page.locator('.app-header .localizer')).toBeHidden()
+
+    // the greeting block is gone — the dashboard starts with the cards
+    await expect(page.locator('.pt-dash__welcome')).toHaveCount(0)
+
+    // open the menu: user header, Account link, Log out link
+    await trigger.click()
+    const menu = page.locator('.pt-nav__user-menu')
+    await expect(menu).toBeVisible()
+    await expect(menu.locator('.pt-nav__user-menu-header')).toContainText(testUser.email)
+    await expect(menu.locator('a[href="/admin/account"]')).toContainText('Account')
+    await expect(menu.locator('a[href="/admin/logout"]')).toContainText('Log out')
+    // localization is disabled in this config → no Locale section
+    await expect(menu.locator('.pt-nav__user-menu-label')).toHaveCount(0)
+
+    // ESC closes the menu
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.pt-nav__user-menu')).toHaveCount(0)
+
+    // outside click closes the menu too
+    await trigger.click()
+    await expect(page.locator('.pt-nav__user-menu')).toBeVisible()
+    await page.locator('.pt-dash__grid').click()
+    await expect(page.locator('.pt-nav__user-menu')).toHaveCount(0)
+  })
+
+  test('empty-state stays centered after client-side navigation', async () => {
+    // The demo seed fills tags — empty it so the no-results state is
+    // guaranteed regardless of local data. (`pnpm seed` restores the demo.)
+    await clearCollection('tags')
+
+    // Load a doc view first so Payload's list-chunk CSS is injected late —
+    // the repro for the "empty state slides left after navigating back" bug.
+    await page.goto('http://localhost:3000/admin/collections/posts')
+    await page.locator('.table a').first().click()
+    await page.waitForURL(/\/admin\/collections\/posts\/.+/)
+
+    await page.locator('.pt-nav a[href="/admin/collections/tags"]').click()
+    const emptyState = page.locator('.no-results')
+    await expect(emptyState).toBeVisible()
+    const align = await emptyState.evaluate((el) => getComputedStyle(el).alignItems)
+    expect(align).toBe('center')
+  })
+
+  test('sidebar keeps its scroll offset across navigation', async () => {
+    // Payload renders the nav inside DefaultTemplate — part of the page, not
+    // the layout — so every navigation remounts it and the scrolled menu node
+    // is thrown away. The offset must survive that.
+    await page.goto('http://localhost:3000/admin')
+    await expect(page.locator('.pt-dash__grid')).toBeVisible()
+
+    // Short viewport (still desktop-wide) so the entity list has to scroll.
+    await page.setViewportSize({ height: 420, width: 1600 })
+
+    const menu = page.locator('.pt-nav__wrap')
+    await expect(menu).toBeVisible()
+    expect(await menu.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true)
+
+    await menu.evaluate((el) => {
+      el.scrollTop = el.scrollHeight
+    })
+    const before = await menu.evaluate((el) => el.scrollTop)
+    expect(before).toBeGreaterThan(0)
+
+    await page.locator('.pt-nav a[href="/admin/collections/users"]').click()
+    await page.waitForURL(/\/admin\/collections\/users(\?.*)?$/)
+    await expect(page.locator('h1', { hasText: 'Users' }).first()).toBeVisible()
+
+    const after = await menu.evaluate((el) => el.scrollTop)
+    expect(Math.abs(after - before)).toBeLessThanOrEqual(2)
+
+    await page.setViewportSize({ height: 1000, width: 1600 })
+  })
+
+  test('the desktop collapse chip is remembered across page loads', async () => {
+    // Payload decides whether the sidebar starts open from the user's `nav`
+    // preference on every page load. On desktop the chip is the only control
+    // the theme leaves, so unless it writes that preference a collapse is lost
+    // on reload, and a "closed" saved in the stock panel can never be undone.
+    const navPreference = (method: 'GET' | 'POST') =>
+      page.waitForResponse(
+        (res) =>
+          res.url().includes('/api/payload-preferences/nav') && res.request().method() === method,
+      )
+    // After hydration Payload fetches the stored preference and applies it to
+    // the sidebar; a click that lands before that is overwritten by it. So
+    // every load waits for that fetch before the chip is touched.
+    const load = async (go: () => Promise<unknown>) => {
+      const [res] = await Promise.all([navPreference('GET'), go()])
+      await res.finished()
+    }
+    const chip = page.locator('.pt-nav-collapse')
+
+    await load(() => page.goto('http://localhost:3000/admin'))
+    await expect(chip).toHaveAttribute('aria-expanded', 'true')
+
+    await Promise.all([navPreference('POST'), chip.click()])
+    await expect(chip).toHaveAttribute('aria-expanded', 'false')
+    await load(() => page.reload())
+    await expect(chip).toHaveAttribute('aria-expanded', 'false')
+
+    // Open again, which must stick as well (and leaves the panel as the
+    // following tests expect it).
+    await Promise.all([navPreference('POST'), chip.click()])
+    await expect(chip).toHaveAttribute('aria-expanded', 'true')
+    await load(() => page.reload())
+    await expect(chip).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  test('can navigate to list view', async () => {
+    await page.goto('http://localhost:3000/admin/collections/users')
+    // Payload may normalize the list URL with default query params
+    await expect(page).toHaveURL(/\/admin\/collections\/users(\?.*)?$/)
+    const listViewArtifact = page.locator('h1', { hasText: 'Users' }).first()
+    await expect(listViewArtifact).toBeVisible()
+  })
+
+  test('can navigate to edit view', async () => {
+    await page.goto('http://localhost:3000/admin/collections/users/create')
+    await expect(page).toHaveURL(/\/admin\/collections\/users\/[a-zA-Z0-9-_]+/)
+    const editViewArtifact = page.locator('input[name="email"]')
+    await expect(editViewArtifact).toBeVisible()
+  })
+
+  test('the theme’s own chrome follows the panel language', async ({ browser }) => {
+    // A German panel must not come out half-English: the strings below all
+    // come from the theme, not from Payload, so they only translate if the
+    // `payloadTheme:*` namespace reached the browser.
+    const context = await browser.newContext({
+      locale: 'de-DE',
+      viewport: { height: 1000, width: 1600 },
+    })
+    const dePage = await context.newPage()
+
+    await dePage.goto('http://localhost:3000/admin/login')
+    await expect(dePage.locator('.pt-login-hero__heading')).toHaveText('Willkommen zurück')
+
+    await login({ page: dePage, user: testUser })
+    await expect(dePage.locator('.pt-nav__search-label')).toHaveText('Suchen')
+    await expect(dePage.locator('.pt-dash__card-caption').first()).toContainText('Dokument')
+    await expect(dePage.locator('text=/payloadTheme:/')).toHaveCount(0)
+
+    await context.close()
+  })
+})

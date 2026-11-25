@@ -1,0 +1,205 @@
+/**
+ * payload-theme — a single-accent theme for the Payload
+ * admin panel. Drop it into your `plugins` array, add one CSS import, and the
+ * whole panel is restyled and recolored from one accent hex.
+ *
+ * @example
+ * import { payloadTheme } from 'payload-theme'
+ *
+ * export default buildConfig({
+ *   plugins: [
+ *     payloadTheme({
+ *       accent: '#e30613',
+ *       logo: '/logo.svg',
+ *       nav: { icons: { posts: 'newspaper', users: 'users' } },
+ *     }),
+ *   ],
+ * })
+ */
+
+import type { CollectionConfig, Config, Field } from 'payload'
+
+import { loadIconNodes, THEME_UI_ICONS } from './icons.js'
+import { resolveOptions, type PayloadThemeOptions } from './options.js'
+import { buildTheme, resolveFont, surfaceToCss, themeToCss } from './theme/index.js'
+import { withThemeTranslations } from './translations/index.js'
+
+const BOOL_CELL = 'payload-theme/client#BoolCell'
+const MEDIA_TOGGLE = 'payload-theme/client#MediaListToggle'
+
+/**
+ * Retarget checkbox list cells to the theme's BoolCell (icon + Yes/No chip
+ * instead of raw `true`/`false`). Recurses only into the container types whose
+ * sub-fields surface as top-level list columns (row, collapsible, tabs);
+ * fields with their own Cell component are left alone.
+ */
+const withBoolCells = (fields: Field[]): Field[] =>
+  fields.map((field) => {
+    if (field.type === 'checkbox') {
+      if (field.admin?.components?.Cell) return field
+      return {
+        ...field,
+        admin: { ...field.admin, components: { ...field.admin?.components, Cell: BOOL_CELL } },
+      }
+    }
+    if (field.type === 'row' || field.type === 'collapsible') {
+      return { ...field, fields: withBoolCells(field.fields) }
+    }
+    if (field.type === 'tabs') {
+      return {
+        ...field,
+        tabs: field.tabs.map((tab) => ({ ...tab, fields: withBoolCells(tab.fields) })),
+      }
+    }
+    return field
+  })
+
+/**
+ * Per-collection transforms: BoolCell for checkbox columns everywhere, plus
+ * the grid/table view toggle above every upload collection's list (the
+ * stylesheet turns the list into a media grid while the toggle says "grid").
+ */
+const transformCollection = (collection: CollectionConfig): CollectionConfig => {
+  const transformed: CollectionConfig = { ...collection, fields: withBoolCells(collection.fields) }
+  if (collection.upload) {
+    transformed.admin = {
+      ...transformed.admin,
+      components: {
+        ...transformed.admin?.components,
+        beforeListTable: [...(transformed.admin?.components?.beforeListTable ?? []), MEDIA_TOGGLE],
+      },
+    }
+  }
+  return transformed
+}
+
+/**
+ * The plugin factory. Returns an (async) Payload config transform that:
+ * 1. validates options, computes the accent scale and loads the icon
+ *    geometry the panel draws (once, at init),
+ * 2. stashes the serializable theme config on `admin.custom.payloadTheme`,
+ * 3. registers dashboard widgets in `admin.dependencies` so the import-map
+ *    generator picks them up,
+ * 4. registers the custom Nav, Dashboard, the accent-injecting provider and
+ *    the server-side avatar resolver.
+ */
+export const payloadTheme =
+  (options: PayloadThemeOptions = {}) =>
+  async (incoming: Config): Promise<Config> => {
+    const { accent, cssVariables, resolved } = resolveOptions(options)
+
+    // Real icons in the first server render: the theme's chrome plus every
+    // configured entity icon and the fallback, shipped on admin.custom.
+    resolved.iconNodes = await loadIconNodes([
+      ...THEME_UI_ICONS,
+      resolved.fallbackIconName,
+      ...Object.values(resolved.nav.icons),
+    ])
+
+    // Compute the --pt-* tokens once here on the server; the ThemeProvider
+    // renders them into a <style> so a single hex recolors every rule.
+    resolved.css = themeToCss(buildTheme(accent), { cssVariables })
+
+    // Neutral family, dark depth, density and frame: only non-default choices
+    // emit (the stylesheet carries the defaults). Prepended, so the accent
+    // block's cssVariables come later and stay the ultimate escape hatch.
+    const surfaceCss = surfaceToCss(resolved.surface)
+    if (surfaceCss) resolved.css = `${surfaceCss}\n${resolved.css}`
+
+    // Font override rides along in the same injected <style>. Payload declares
+    // `--font-body` outside any cascade layer, so this override must be
+    // unlayered too — a layered declaration would always lose.
+    const fontStack = resolveFont(resolved.font).stack
+    if (fontStack) {
+      resolved.css += `\n:root { --font-body: ${fontStack}; }`
+    }
+
+    const config: Config = { ...incoming }
+    config.admin = config.admin ?? {}
+    config.admin.custom = { ...config.admin.custom, payloadTheme: resolved }
+
+    // The theme's own strings, under a `payloadTheme:*` namespace, for every
+    // language Payload accepts (English where a locale isn't translated yet).
+    // Anything the project already declared there is preserved and wins, so
+    // rewording the theme's copy needs no component override.
+    config.i18n = withThemeTranslations(config.i18n)
+
+    // List-view upgrades: boolean chips + the media grid toggle.
+    config.collections = (config.collections ?? []).map(transformCollection)
+
+    // Widgets are referenced by import-map path (like every Payload component).
+    // `admin.custom` isn't crawled by `generate:importmap`, so declare each one
+    // in `admin.dependencies` — the generator's explicit escape hatch.
+    if (resolved.dashboard.widgets.length > 0) {
+      config.admin.dependencies = { ...config.admin.dependencies }
+      resolved.dashboard.widgets.forEach((widget, index) => {
+        // resolveOptions guarantees a string or `{ path }` object (never `false`).
+        const component = widget.component as string | { exportName?: string; path: string }
+        const path =
+          typeof component === 'string'
+            ? component
+            : `${component.path}${component.exportName ? `#${component.exportName}` : ''}`
+        config.admin!.dependencies![`payload-theme-widget-${index}`] = {
+          type: 'component',
+          path,
+        }
+      })
+    }
+
+    const components = { ...config.admin.components }
+    components.Nav = 'payload-theme/client#Nav'
+    components.providers = [
+      ...(components.providers ?? []),
+      // replays the header customizer's overrides before the first paint; a
+      // server component so its inline <script> is only ever emitted in the
+      // HTML (first, as the outermost of ours) and never created client-side
+      'payload-theme/rsc#BootScript',
+      // resolves the user avatar server-side (gravatar, a user field, or
+      // Payload's own `admin.avatar` component) for the sidebar/header blocks
+      'payload-theme/rsc#AvatarProvider',
+      'payload-theme/client#ThemeProvider',
+      // one global instance powers the row-hover edit/duplicate/delete cluster
+      'payload-theme/client#ListQuickActions',
+    ]
+    // Header right side: theme customizer (accent/radius/layout), light-dark
+    // toggle and the compact user menu.
+    components.actions = [...(components.actions ?? []), 'payload-theme/client#HeaderActions']
+    // Renders the split-layout brand panel on the login view; the stylesheet
+    // only switches to the two-column card when this element is present.
+    // A server component: unauthenticated pages get a stripped client config
+    // (no admin.custom), so the hero reads the theme from `payload` directly.
+    components.beforeLogin = [...(components.beforeLogin ?? []), 'payload-theme/rsc#LoginHero']
+    components.views = {
+      ...components.views,
+      dashboard: {
+        ...(components.views?.dashboard as object),
+        Component: 'payload-theme/rsc#Dashboard',
+      },
+    }
+    config.admin.components = components
+
+    return config
+  }
+
+export default payloadTheme
+export { THEME_PRESETS } from './options.js'
+export type {
+  DashboardOptions,
+  DashboardWidget,
+  DashboardWidgetServerProps,
+  DashboardWidgetWidth,
+  NavOptions,
+  PayloadThemeOptions,
+  ThemeAvatarOption,
+  ThemeDarkMode,
+  ThemeDensity,
+  ThemeFont,
+  ThemeFrame,
+  ThemeLogoLink,
+  ThemeNeutral,
+  ThemePreset,
+  ThemePresetDefinition,
+  ThemeRadius,
+} from './options.js'
+export { THEME_I18N_NAMESPACE, THEME_TRANSLATIONS } from './translations/index.js'
+export type { ThemeTranslationKey, ThemeTranslations } from './translations/index.js'

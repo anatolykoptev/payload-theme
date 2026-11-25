@@ -1,0 +1,102 @@
+{
+  "name": "payload-theme",
+  "version": "0.11.0",
+  "description": "A shadcn-style theme for the Payload CMS admin panel — dashboard with sparklines, ⌘K command palette, grouped icon sidebar, live theme customizer, dark mode, 8 languages. One accent color, two lines of setup.",
+  "license": "MIT",
+  "author": "Lider Bektaş <liderbektas200@gmail.com>",
+  "homepage": "https://github.com/liderbektas/payload-theme#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liderbektas/payload-theme.git",
+    "directory": "packages/payload-theme"
+  },
+  "bugs": {
+    "url": "https://github.com/liderbektas/payload-theme/issues"
+  },
+  "keywords": [
+    "payload",
+    "payloadcms",
+    "payload-cms",
+    "payload-plugin",
+    "payload-theme",
+    "admin",
+    "admin-panel",
+    "admin-theme",
+    "admin-ui",
+    "admin-dashboard",
+    "theme",
+    "shadcn",
+    "dark-mode",
+    "command-palette",
+    "i18n",
+    "ui",
+    "dashboard",
+    "cms",
+    "nextjs",
+    "white-label",
+    "branding"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/exports/client.d.ts",
+      "default": "./dist/exports/client.js"
+    },
+    "./rsc": {
+      "types": "./dist/exports/rsc.d.ts",
+      "default": "./dist/exports/rsc.js"
+    },
+    "./styles.css": "./dist/styles/theme.css"
+  },
+  "scripts": {
+    "build": "pnpm run clean && pnpm run build:swc && pnpm run build:types && pnpm run build:styles",
+    "build:swc": "swc src -d dist --strip-leading-paths --ignore \"**/*.test.ts\"",
+    "build:types": "tsc --emitDeclarationOnly --outDir dist",
+    "build:styles": "node scripts/build-styles.mjs",
+    "clean": "rm -rf dist",
+    "dev": "swc src -d dist --strip-leading-paths --ignore \"**/*.test.ts\" --watch",
+    "test": "vitest run && pnpm run test:esm",
+    "test:esm": "node scripts/check-node-esm.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "^1.24.0"
+  },
+  "peerDependencies": {
+    "@payloadcms/next": "^3.0.0",
+    "@payloadcms/translations": "^3.0.0",
+    "@payloadcms/ui": "^3.0.0",
+    "next": ">=15",
+    "payload": "^3.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@payloadcms/next": "3.85.2",
+    "@payloadcms/translations": "3.85.2",
+    "@payloadcms/ui": "3.85.2",
+    "@swc/cli": "0.7.8",
+    "@swc/core": "1.13.5",
+    "@types/node": "22.19.9",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "4.5.2",
+    "next": "16.2.6",
+    "payload": "3.85.2",
+    "react": "19.2.6",
+    "typescript": "5.7.3",
+    "vitest": "4.0.18"
+  },
+  "engines": {
+    "node": "^18.20.2 || >=20.9.0"
+  }
+}

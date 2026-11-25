@@ -1,0 +1,485 @@
+# Changelog
+
+All notable changes to `payload-theme` are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
+[Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Fixed
+
+- **The desktop sidebar collapse chip was forgotten on every page load, and a
+  sidebar closed in the stock panel stayed closed for good.** Payload decides
+  whether the sidebar starts open from the user's `nav` preference
+  (`nav.open`), read on every page load. The chip only flipped the in-memory
+  state, and on desktop the theme replaces Payload's nav toggler, the only
+  control that wrote that preference. So a collapse was undone by the next
+  reload, and a user who had collapsed the sidebar before installing the
+  theme got it closed on every load with no way to change that from the
+  panel. The chip now saves `{ open }` under `nav` exactly as Payload's
+  toggler does (merged, so the stored group states survive).
+
+## [0.11.0] — 2026-11-13
+
+### Added
+
+- **`logoLink` option** — `{ href: string; label: string }`. Points the
+  sidebar logo somewhere other than the dashboard (the public site, say) and
+  names that link for screen readers. Omitted, the logo links to the
+  dashboard as before.
+
+### Fixed
+
+- **Lazily loaded icons stayed blank with lucide-react 1.42+**
+  ([#10](https://github.com/liderbektas/payload-theme/issues/10)). lucide
+  renamed each icon module's `__iconNode` export to `__iconData` (geometry
+  under `.node`) in a minor release, which the `^1.24.0` range picks up. The
+  server-side preload already read both shapes; the client `Icon`'s lazy path
+  still read only `__iconNode`, cached `undefined` and never retried. Both
+  paths now share one reader, and a module without geometry is no longer
+  cached as loaded.
+- **An icon could stay a blank placeholder after a navigation** when the same
+  icon finished loading between that instance's render and its effect: the
+  effect saw it cached and returned without redrawing. It redraws now.
+
+- **The plugin can be imported by plain Node ESM** again — Vitest, `node`
+  scripts and anything else that loads `payload.config.ts` without bundling
+  `node_modules` failed with `ERR_MODULE_NOT_FOUND: …/payload-theme/dist/icons`.
+  The build kept the source's extensionless relative imports; every relative
+  import now carries its `.js` extension, and the deep imports into packages
+  without an `exports` map (`next/navigation`, `next/link`,
+  `lucide-react/dynamic`) name their file too. The package's tsconfig now uses
+  `NodeNext` resolution so TypeScript rejects an extensionless import, and
+  `pnpm test` loads the built plugin with plain `node` and runs it over a
+  config. The published type declarations gain the same extensions, so
+  consumers on `moduleResolution: "nodenext"` resolve them as well.
+  Follows up on #13, which fixed the same error for lucide's icon map.
+
+- **"Encountered a script tag while rendering React component"** in the dev
+  console on `/admin`. The header customizer's pre-paint boot script was
+  rendered by the client `ThemeProvider`, so React also created it on the
+  client, where inline scripts never run. It now comes from a new server
+  component, `payload-theme/rsc#BootScript`, registered first in
+  `admin.components.providers`. Behavior is unchanged: the script is still in
+  the initial HTML and still runs before the first paint. It is skipped on the
+  unauthenticated views (login, forgot/reset password, create-first-user):
+  Payload renders those entirely in the browser, so the script could never
+  run there and only brought the warning back.
+
+### Upgrading
+
+- **Run `npx payload generate:importmap`** (then restart the dev server) after
+  upgrading — the new `BootScript` provider has to be in the import map, just
+  like `AvatarProvider` in 0.10.0. `next dev` regenerates it on its own, but a
+  production build from a stale `importMap.js` resolves the provider to
+  nothing, and Payload then drops everything nested inside it: the admin
+  renders blank.
+
+## [0.10.0] — 2026-10-29
+
+### Added
+
+- **`neutral` option** — `'zinc' | 'slate' | 'gray' | 'neutral' | 'stone'`.
+  Retints Payload's whole base ladder (and so every surface, border and text
+  rung, light and dark) to one of Tailwind's neutral families. Presets now
+  carry a neutral too: Ocean is slate, Forest and Sunset are stone, Swiss is
+  neutral, Zinc and Berry stay zinc.
+- **`density` option** — `'comfortable' | 'compact'`. Compact shrinks input
+  height (40 → 34px), select and large-button padding, table row padding, the
+  form grid's row gap and the view padding. Comfortable is pixel-identical to
+  before.
+- **`frame` option** — `'inset' | 'flat'`. Flat drops the floating content
+  card: no gutter, radius or shadow, one hairline against the docked sidebar.
+- **`darkMode` option** — `'deep' | 'dim'`. Dim lifts every dark surface one
+  rung (card on zinc-900 instead of 950) for a softer night look.
+- All four are in the header customizer, and **Copy config** writes them.
+- **Status-toned badges** in list cells. Select values with a well-known name
+  get a soft semantic tint — green for published/active/approved…,
+  amber for draft/pending/review…, blue for scheduled/queued/processing…, red
+  for rejected/failed/cancelled…; archived is a quieter neutral, and anything
+  else keeps the neutral pill.
+- **Sticky list header and identity column.** Long lists scroll inside the
+  table card (capped to the viewport, `--pt-table-max-h`), so the header row
+  stays visible; the select box and first data column stay put while wide
+  tables scroll sideways, with a hairline at the frozen edge once scrolled
+  (browsers with scroll-state queries).
+- **Route progress bar** in the accent color with a soft glow, instead of
+  Payload's near-black line.
+- Tokens: `--pt-danger`, `--pt-info` and `-text` variants for every status
+  color; a type scale `--pt-text-3xs` … `--pt-text-3xl` that every theme font
+  size now reads (sizes moved by at most ±0.5px); density and frame tokens.
+
+### Changed
+
+- Views no longer fade-rise in on navigation, and dashboard cards no longer
+  cascade in — content mounts in place.
+
+### Fixed
+
+- Odd list rows never showed the hover tint: the zebra reset painted them
+  `transparent` with the same specificity, later in the file.
+- **Icons blank on every full page load.** Each lucide icon is a lazy chunk,
+  so the server HTML only held empty boxes and the header buttons, sidebar
+  and dashboard cards stayed iconless until the chunks arrived. The plugin
+  now loads the geometry of every icon the panel can draw (the theme's own UI
+  plus `nav.icons` and the fallback) once at init and ships it on
+  `admin.custom`; the first paint has real icons. The loader reads both
+  lucide module shapes (`__iconNode` up to 1.41, `__iconData.node` from
+  1.42). The plugin function is now async, which Payload's `plugins` array
+  supports.
+- **Customizer settings looked reset after a refresh.** Overrides were only
+  applied after hydration, so the config's own look showed until then. The
+  customizer now stores the exact CSS it applied, and an inline script in the
+  ThemeProvider replays it before the first paint.
+- **The customizer panel ran off the left edge on phones** — it was aligned
+  to the palette button, which isn't the header's last chip. On screens up
+  to 768px it now spans the header with a 12px gutter, and its height uses
+  `dvh` so the footer buttons stay reachable under mobile browser chrome.
+- Badges carry no dot: the list select pills and the document status pill
+  are text only.
+- The playground's `next.config` sets `experimental.reactDebugChannel: false`
+  — see Troubleshooting for the dev-only `'i18n'` read-only error it avoids.
+
+## [0.9.4] — 2026-09-11
+
+### Fixed
+
+- **`admin.width` was ignored inside `row` fields**
+  ([#9](https://github.com/liderbektas/payload-theme/issues/9)). A row's body
+  is a `.render-fields` like any group or block body, so the two-column form
+  grid swallowed it too: widths of 20% / 25% / 35% / 20% came out as two lines
+  of equal 50% fields. Rows are now left out of the grid and keep Payload's
+  own flex row, sized by `--field-width`; only the gutters are retuned to the
+  grid's 20px / 22px so a row still sits flush with the fields around it.
+- **Radio buttons never picked up the accent.** The rule targeted
+  `.radio-input--checked`, but Payload marks the chosen option
+  `.radio-input--is-selected`, so the stock near-black dot showed through.
+- The tab strip of a `tabs` field jutted past both edges of the edit card —
+  Payload bleeds it out by `--gutter-h`, wider than the card's padding. It now
+  sits on the card's content box.
+
+### Changed
+
+- **Field tabs** are shadcn underline tabs: body-size medium labels in the
+  muted color, the active one in the text color over a 2px accent bar, instead
+  of Payload's h4-sized labels at half opacity over a black bar. Error tabs keep
+  their red tint; keyboard focus gets an accent outline.
+- **Radio buttons** are a 16px input-bordered ring with an accent dot, and
+  swap Payload's green focus glow for the same accent ring as inputs.
+- **Code and JSON fields** wear the input frame (border, radius, xs shadow,
+  accent focus ring), and the Monaco editor inside drops the `vs` theme's
+  off-white background, blue line numbers and gray current-line box for the
+  input background, muted line numbers and an accent selection — light and
+  dark. Syntax colors are Monaco's own.
+
+## [0.9.3] — 2026-08-27
+
+### Fixed
+
+- **The locale switcher looked dead for the whole server round trip**
+  ([#7](https://github.com/liderbektas/payload-theme/issues/7)). It did switch
+  — the URL, `useLocale`, a document's localized fields and the stored
+  preference all updated correctly — but it did so silently: the menu called
+  `router.push` bare, so between the click and the RSC payload landing there
+  was no progress bar, no loading state and no URL change. Throttled to a 4s
+  navigation, the menu sat perfectly still for the full four seconds where
+  Payload's own switcher starts its progress bar on the first frame, and the
+  theme hides Payload's switcher — so there was no second opinion to reach
+  for. The switch now runs through `startRouteTransition` (Payload's top
+  progress bar) and `setLocaleIsLoading` (`DocumentInfoProvider`'s
+  `isInitializing`), the same two wrappers Payload's `Localizer` uses.
+- The pushed URL is relative now (`?locale=…`) rather than a rebuilt
+  `${pathname}?…`, so it cannot disagree with the address bar under a Next
+  `basePath`, a rewrite or `trailingSlash`.
+
+### Added
+
+- **Locale rows show a flag and the locale code** — `🇹🇷 Türkçe (tr)`. A bare
+  "Türkçe" reads as the PANEL language, which is a different setting living on
+  the account page, and that mix-up is half of what #7 was: switching a
+  content locale changes nothing on screen unless a field is `localized: true`.
+  The code is the same disambiguation Payload's own `Localizer` prints, and it
+  is dropped when the label already IS the code. The flags are inline SVG, not
+  emoji, because Windows ships no flag glyphs and renders `🇹🇷` as the letters
+  "TR" — 55 regions are drawn, resolved from the locale code (an explicit
+  region wins, so `pt-BR` flies Brazil and `pt` Portugal); anything unmapped
+  simply shows the code on its own.
+
+## [0.9.2] — 2026-08-26
+
+### Added
+
+- **The user avatar is configurable, and Payload's own `admin.avatar` works
+  again** ([#6](https://github.com/liderbektas/payload-theme/issues/6)). The
+  theme replaces Payload's Nav and hides its header account button, so the
+  only avatar on screen was the initials circle the theme drew itself — with
+  no way to change it, and `admin.avatar` rendering into a `display: none`
+  node. A new server-side `AvatarProvider` now resolves the avatar once per
+  request and hands it to both user blocks (sidebar and header):
+  - `avatar: { field: 'avatar', size: 'thumbnail' }` — a field on your auth
+    collection. An `upload`/`relationship` is looked up with access control
+    applied (Payload's auth depth is 0, so the value arrives as an ID); a
+    plain text field holding a URL is used as-is. Dot paths reach into groups,
+    and `size` picks a named upload size instead of the original file.
+  - `avatar: 'gravatar'` — the Gravatar for the user's email, hashed with
+    SHA-256 (no new dependency).
+  - `avatar: 'initials'` — the circle, explicitly, even when `admin.avatar`
+    is set.
+  - **Option omitted → Payload decides.** `admin.avatar: 'gravatar'` and
+    `admin.avatar: { Component }` both render inside the theme's circle now;
+    the custom component is server-rendered through the import map, so it
+    still receives `payload`, `user`, `i18n` and `permissions`.
+
+  Anything unresolvable — no value, a deleted upload, no read access — falls
+  back to initials instead of breaking the page, and with nothing configured
+  the provider does no work at all.
+
+### Upgrading
+
+- Run `npx payload generate:importmap` and restart: the avatar resolver is a
+  registered component and needs an entry in your import map.
+
+## [0.9.1] — 2026-08-15
+
+### Fixed
+
+- **The sidebar flickered and lost its scroll position on every navigation**
+  ([#4](https://github.com/liderbektas/payload-theme/issues/4)). Payload
+  renders the nav inside `DefaultTemplate`, which belongs to the page rather
+  than the layout, so clicking a menu item remounts the whole sidebar. Two
+  things fell out of that remount, both now handled:
+  - **Icons blanked for a frame.** lucide's `DynamicIcon` re-imports its icon
+    in an effect on every mount and renders nothing until that promise
+    settles, so each navigation blanked all the icons and shifted the labels
+    left before they popped back — the visible flicker. Resolved icons are now
+    cached at module scope and render synchronously on later mounts, so the
+    first paint after a navigation is already correct; the not-yet-loaded
+    state is an empty box of the icon's size instead of nothing, so nothing
+    shifts on the very first load either. The dashboard cards, ⌘K palette,
+    header actions and user menu share the same cache.
+  - **The menu scrolled back to the top.** With enough collections to make the
+    entity list scroll, clicking an item you had to scroll down to threw the
+    scrolled node away and started from 0. The offset is now remembered and
+    restored before the browser paints the new page.
+- The search pill no longer replays its `⌘K` → `Ctrl K` swap on every
+  navigation for Windows and Linux users — the resolved label is remembered
+  the same way.
+
+## [0.9.0] — 2026-07-28
+
+### Added
+
+- **The theme speaks eight languages.** Every string the theme adds — the
+  sidebar search pill, the ⌘K palette and its group headings, the dashboard
+  captions and trend tooltips, "On this page", the whole customizer panel, the
+  media view toggle, the login copy — was hardcoded English, so installing the
+  plugin into a German or Turkish panel produced a half-translated admin.
+  They now ship in **English, German, French, Spanish, Italian, Dutch,
+  Portuguese and Turkish** under a `payloadTheme:*` namespace merged into
+  `config.i18n.translations`, and follow the panel language the user picked.
+  A language without a translation falls back to English rather than leaking
+  raw keys, and a project that declares its own `payloadTheme:*` keys wins —
+  the supported way to reword the theme without overriding a component.
+  Strings Payload already ships (`general:close`, `authentication:logOut`,
+  `general:createNewLabel`, …) are reused from its namespaces instead of
+  duplicated.
+- **`preset` — a whole look in one word.** `payloadTheme({ preset: 'ocean' })`
+  sets accent, radius and typeface together. The six presets are the exact
+  ones the header customizer offers (Zinc, Ocean, Forest, Sunset, Berry,
+  Swiss), now defined once and shared by both, so a look you click is a look
+  you can commit. Every option you pass explicitly still wins over the preset,
+  so `{ preset: 'ocean', accent: '#e30613' }` is Ocean's geometry in your red.
+- **Copy config writes the short form.** When the customizer's current state
+  matches a preset exactly, the copied snippet is the one-line `preset:` form
+  instead of three separate options.
+
+### Changed
+
+- **BREAKING (types only): `preset` no longer accepts `'soft' | 'noir' |
+'minimal'`.** Those values were validated, typed and exported but read by no
+  component or stylesheet — the option did nothing. The name now carries the
+  six real themes. Anything passing an old value gets a clear error naming the
+  valid ones; nothing that worked before stops working, because nothing before
+  worked.
+- The playground now enables four panel languages (`de`, `en`, `fr`, `tr`) so
+  the Account language switcher is real and the theme's own chrome can be
+  checked outside English.
+
+## [0.8.3] — 2026-07-24
+
+### Fixed
+
+- **Select menus clipped inside collapsibles, block and array rows:** Payload
+  renders the `react-select` dropdown inline (no portal, `z-index: 4`), so the
+  theme's `overflow: hidden` on `.collapsible` and the block/array list card —
+  there to clip the cards' rounded corners — also clipped any select menu that
+  opened inside them, hiding the lower options. The clip is now released with
+  `:has(.rs__menu)` only while a menu is open, so corner clipping is preserved
+  at rest and only the card holding the open menu is affected; the menu's
+  `z-index` is lifted to sit over the fields it overflows onto.
+
+## [0.8.2] — 2026-07-22
+
+### Fixed
+
+- **Content card lost its right gutter:** Payload sizes the frame's content
+  card at `width: 100%` of its grid track, so the theme's 8px right margin
+  overflowed the viewport instead of insetting the card — the panel looked
+  padded on the left and flush on the right. The card now sizes to the track
+  minus its margins, so both gutters match at every nav state and width.
+
+### Changed
+
+- **Dashboard trend chips read "New" instead of disappearing:** a collection
+  with documents but no activity in the previous 30-day window now shows a
+  neutral "New" chip. Most real projects are younger than 60 days or import
+  their content at once, so the old "no baseline → no chip" rule hid the
+  trend row on exactly the installs that just got started. Only collections
+  with no activity in either window stay chip-less.
+- **README screenshots regenerated** against the current build, and the
+  tagline is the same line in both the repo and npm READMEs.
+
+## [0.8.1] — 2026-07-21
+
+### Changed
+
+- **README hero:** the lead screenshot now shows the dashboard with the
+  sidebar expanded (light + dark), so the grouped icon nav, ⌘K search and
+  active-item accent are visible at first glance on npm and GitHub.
+
+## [0.8.0] — 2026-07-21
+
+### Added
+
+- **Theme presets:** the header customizer opens with six one-click full
+  themes — Zinc, Ocean, Forest, Sunset, Berry, Swiss — each a coherent
+  accent + radius + typeface identity applied live.
+- **Copy config:** a customizer button that turns whatever is on screen
+  (accent, radius, font) into a ready-to-paste `payloadTheme({ ... })`
+  snippet — the customizer is now a config generator, not just a toy.
+- **`font` option + customizer Font row:** swap the panel typeface to
+  `'inter'`, `'geist'` (Google Fonts, loaded at runtime), `'helvetica'`,
+  `'system'` (pure stacks, no network) or any custom CSS font-family stack.
+  Each customizer font button previews itself in its own face.
+- **⌘K Recent group:** the last five documents you opened sit at the top of
+  the palette — tracked from the URL per browser, titles resolved through
+  the REST API on open (deleted/forbidden docs silently drop out).
+- **⌘K Create group:** "New \<Type\>" commands for every collection you may
+  create in — jump straight to a blank document from anywhere.
+- **Document outline:** long edit forms get a sticky "On this page" rail
+  pinned to the viewport's right edge (≥1500px) — tick bars at rest, a
+  labeled panel on hover. Entries are the form's top-level sections (groups,
+  collapsibles, blocks, arrays) and each tab of a tabs field; clicking
+  scrolls (or switches tab), the active section follows the scroll.
+- **Keyboard shortcuts modal:** press `?` anywhere for a cheatsheet card;
+  also reachable from the palette ("Keyboard shortcuts").
+- **Dashboard trend chips:** every stat card compares the last 30 days of
+  created docs against the 30 before and shows a quiet pill — `+12%`, `-8%`
+  or `±0%` — next to the count (no baseline → no chip).
+- Press feedback: solid buttons dip 1px while pressed (reduced-motion safe).
+
+### Changed
+
+- **Mobile nav is a real drawer** (≤1440px): a ~300px panel sliding in over
+  a blurred, dimmed scrim — no more full-width takeover. The X button is
+  gone; tapping the scrim, pressing Esc, or navigating closes it. The
+  header toggler now wears lucide's panel-left-open mark. Fixes the layout
+  crush where opening the stock nav squeezed every page to zero width.
+- **Desktop sidebar collapse** (>1440px): a panel toggle chip at the app
+  header's left edge collapses/expands the sidebar with an animated grid
+  transition — same panel-left mark as the mobile toggler, perfectly
+  aligned with the header's right-side chips in every scroll state.
+- **Mobile list & edit fixes** (≤768px): the bulk-selection bar leaves its
+  broken fixed-bottom position (it overflowed the right edge and covered
+  the pagination row) and flows under the page controls with wrapping
+  chips; stacked edit-view sidebar cards now align exactly with the main
+  fields card instead of running full-bleed.
+
+## [0.7.0] — 2026-07-19
+
+### Added
+
+- **Blocks & arrays — unified list:** rows render as one bordered list card
+  with hairline dividers instead of separate floating cards; muted tabular
+  row numbers, ghost kebab/chevron actions, and a neutral **per-block-type
+  icon tile**. Ships glyphs for `content`, `cta` and `hero`; any block slug
+  opts in via the `--pt-block-ico` custom property on its pill class.
+- README rebuilt as a product page (light/dark hero pair, full themed tour)
+  with absolute image URLs so the gallery renders on npmjs.com as well.
+
+### Changed
+
+- **Dark mode surfaces:** nested surfaces now get _lighter_ as they stack —
+  top-level group panels (e.g. Seo) are a raised `elevation-100` surface
+  instead of a near-black well, and every field box inside a lifted surface
+  (inputs, textareas, selects, upload cards) sits flat and transparent with
+  its border doing the work, focus included.
+- Sidebar footer (user block) docks at the sidebar's bottom edge — stock's
+  ~40px `--nav-padding-block-end` reduced to 10px.
+- npm metadata: sharper description and expanded keywords.
+
+## [0.6.0] — 2026-07-19
+
+### Added
+
+- **List views:** checkbox columns render a round tick/X icon chip (`BoolCell`)
+  instead of raw `true`/`false`; every row carries persistent edit + delete
+  actions at the table's right edge (two-step "Delete?" confirm via REST).
+- **Media library:** upload collections get a grid/table switch — the grid
+  relays each row as a card with full-bleed 4:3 artwork, filename + meta,
+  hover date chip and a floating selection checkbox with an accent ring.
+- **Micro-interactions:** stat-card and picker-card hover lift, skeleton
+  (shimmer) restyle, sonner toast redesign with semantic icon colors, CSS-only
+  login-glow drift, dropzone drag pulse — all behind `prefers-reduced-motion`.
+- Theme customizer swatch row now leads with the accent configured in the
+  plugin options.
+- Repo: CI workflow, visual-regression suite (`pnpm --filter dev test:visual`),
+  root LICENSE, CONTRIBUTING guide, issue/PR templates, ESLint + Prettier.
+
+### Changed
+
+- Dashboard stat cards follow the reference stat-card grammar: muted label
+  left, round neutral icon chip right, large count, accent sparkline pinned to
+  the card's bottom.
+- Bulk-selection bar actions (Select all / Edit / Publish / Unpublish /
+  Delete) are outline chips instead of underlined links.
+- Status/select badges are uniformly neutral chips (no semantic dots/colors).
+- Confirmation modals: title and supporting line read as one block.
+- Two-column form grid: toggles align with the neighbouring input's box.
+- `src/styles` is split into ~30 reviewable modules; the published
+  `dist/styles/theme.css` remains a single flat file (byte-identical cascade).
+
+## [0.5.0] — 2026-07-17
+
+### Added
+
+- Structured-field card system: blocks/arrays/collapsibles as real cards with
+  composed headers (grip, numbered chip, title, ghost inline title editor).
+- Two-column form grid for compact field types on desktop.
+
+### Changed
+
+- shadcn "inset" layout: zinc canvas, sidebar directly on the page background,
+  all content in one rounded floating card with a sticky translucent header.
+- Header theme customizer (accent / radius / color mode / layout, persisted).
+
+## [0.4.0] — 2026-07-13
+
+### Added
+
+- Page-header system for list and edit views (calm title + toolbar grammar).
+- Dashboard widgets option (`dashboard.widgets`), sidebar user menu.
+
+## [0.3.0] — 2026-07-11
+
+### Added
+
+- Split-layout login hero, dashboard v2 with sparklines, ⌘K command palette,
+  radius system (`none`–`full`).
+
+## [0.2.0] — 2026-07-11
+
+### Added
+
+- First public cut: OKLCH accent engine, soft zinc preset, restyled forms,
+  buttons, tables and nav.

@@ -1,0 +1,56 @@
+/* ==================================================================== *
+ * MOTION + FORM POLISH
+ *
+ * Quieter field typography. Views and dashboard cards mount without any
+ * entrance animation, so navigation never shifts content under the cursor —
+ * the route progress bar along the top edge is the only navigation cue.
+ * ==================================================================== */
+@layer payload {
+  /* ---- route progress bar ----
+   * Payload's RouteTransition bar (fixed, 2px, top of the viewport) paints
+   * in elevation-1000 — near-black on the light panel. Accent it instead,
+   * with a soft glow on the leading edge so the thin line still reads. */
+  .progress-bar__progress {
+    background-color: var(--pt-accent);
+    border-start-end-radius: 999px;
+    border-end-end-radius: 999px;
+    box-shadow:
+      0 0 10px color-mix(in srgb, var(--pt-accent) 55%, transparent),
+      0 0 4px color-mix(in srgb, var(--pt-accent) 40%, transparent);
+  }
+
+  /* ---- field typography: calm labels, quiet descriptions ---- */
+  .field-label {
+    font-size: var(--pt-text-xs);
+    font-weight: 500;
+    color: var(--theme-elevation-800);
+  }
+  .field-description {
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-2xs);
+  }
+
+  /* (collapsible / array / blocks row chrome lives in the STRUCTURED
+   * FIELDS module below) */
+}
+
+@keyframes pt-drop-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--pt-accent-ring) 22%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--pt-accent-ring) 8%, transparent);
+  }
+}
+
+@keyframes pt-glow-drift {
+  from {
+    opacity: 0.9;
+    transform: translate3d(-2%, -1.5%, 0) scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(2%, 2%, 0) scale(1.18);
+  }
+}

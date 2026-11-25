@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  DATABASE_URI: file:./payload-theme-playground.db
+  PAYLOAD_SECRET: ci-only-secret-not-used-anywhere-real
+
+jobs:
+  checks:
+    name: Build, lint & test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build plugin
+        run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit + integration tests
+        run: pnpm test
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build plugin
+        run: pnpm build
+
+      - name: Install Playwright browser
+        working-directory: dev
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Run from dev/ (not via --filter from the root): the root pnpm process
+      # exports its config to child processes, and the nested `pnpm dev` that
+      # Playwright's webServer spawns then chokes on a phantom .pnpmfile path.
+      # The visual-regression spec self-skips on CI (baselines are
+      # per-platform); the functional specs run against the real dev server.
+      - name: Run e2e tests
+        working-directory: dev
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: dev/playwright-report
+          retention-days: 7

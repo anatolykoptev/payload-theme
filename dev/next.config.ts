@@ -1,0 +1,44 @@
+import { withPayload } from '@payloadcms/next/withPayload'
+import type { NextConfig } from 'next'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const dirname = path.dirname(__filename)
+
+const nextConfig: NextConfig = {
+  // Keep the floating dev-tools badge out of docs screenshots and the demo.
+  devIndicators: false,
+  experimental: {
+    // Next 16 streams React's dev-only debug info (every server component's
+    // props — Payload hands them `i18n`, `req`, `payload` …) over a separate
+    // websocket. Reloading while that stream is still resolving makes React's
+    // flight client write into already-frozen objects and throw "Cannot
+    // assign to read only property 'i18n'" (or read `time`/`stack` of
+    // undefined). Inline debug info has no such race.
+    reactDebugChannel: false,
+  },
+  images: {
+    localPatterns: [
+      {
+        pathname: '/api/media/file/**',
+      },
+    ],
+  },
+  webpack: (webpackConfig) => {
+    webpackConfig.resolve.extensionAlias = {
+      '.cjs': ['.cts', '.cjs'],
+      '.js': ['.ts', '.tsx', '.js', '.jsx'],
+      '.mjs': ['.mts', '.mjs'],
+    }
+
+    return webpackConfig
+  },
+  turbopack: {
+    // monorepo root: lets Turbopack resolve hoisted node_modules and compile
+    // the workspace `payload-theme` package alongside this app
+    root: path.resolve(dirname, '..'),
+  },
+}
+
+export default withPayload(nextConfig, { devBundleServerPackages: false })
