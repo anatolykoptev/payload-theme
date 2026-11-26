@@ -119,10 +119,13 @@ export {
   neutralLadder,
   SURFACE_DEFAULTS,
   surfaceToCss,
+  WIDGETS_POSITIONS,
+  WIDGETS_TOKENS,
   type SurfaceCssOptions,
   type SurfaceOptions,
   type ThemeDarkMode,
   type ThemeDensity,
   type ThemeFrame,
   type ThemeNeutral,
+  type ThemeWidgetsPosition,
 } from './surface.js'

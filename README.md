@@ -113,6 +113,7 @@ The palette button opens a panel where anyone can restyle the panel at runtime �
 - **Neutral** — the gray family behind every surface: Zinc, Slate (cool), Gray, Neutral (pure) or Stone (warm)
 - **Density** — comfortable or compact: tighter inputs, buttons, table rows and form grid for data-heavy panels
 - **Frame** — inset (content floats in a rounded card) or flat (edge to edge, one hairline against the sidebar)
+- **Widgets** — above or below the built-in cards; shown only when `dashboard.widgets` is configured
 - **Color mode** — light/dark, stored in the same preference Payload's Account page uses
 - **Dark mode depth** — deep (near-black) or dim (every surface a rung lighter, softer at night)
 - **Content layout** — centered (~1280px) or full width
@@ -324,7 +325,8 @@ payloadTheme({
 | `login.heading` | `string` | `'Welcome back'` | Big heading on the login brand panel. |
 | `login.tagline` | `string` | `'Sign in to manage your content.'` | Supporting line under the heading. |
 | `nav.icons` | `Record<slug, iconName>` | folder icon | Maps collections/globals to [lucide](https://lucide.dev) icons — sidebar, dashboard cards and palette. |
-| `dashboard.widgets` | `DashboardWidget[]` | `[]` | Custom components rendered below the built-in dashboard content. |
+| `dashboard.widgets` | `DashboardWidget[]` | `[]` | Custom components rendered next to the built-in dashboard content (below it unless `widgetsPosition` says otherwise). |
+| `dashboard.widgetsPosition` | `'bottom' \| 'top'` | `'bottom'` | Where the widgets sit relative to the collection and global cards. The default the header customizer starts from. |
 | `cssVariables` | `Record<string, string>` | — | Escape hatch: override any raw `--pt-*` token directly. |
 
 ## User avatar
@@ -376,7 +378,7 @@ Resolution happens once per request in a server provider, so an upload relations
 
 ## Dashboard widgets
 
-The built-in dashboard always renders as-is — widgets are an *additional* area below it. Point each entry at a React component using Payload's standard import-map path convention:
+The built-in dashboard always renders as-is — widgets are an *additional* area below it (or above it, with `dashboard.widgetsPosition: 'top'`; the header customizer's **Widgets** switch changes it per browser). Point each entry at a React component using Payload's standard import-map path convention:
 
 ```ts
 payloadTheme({

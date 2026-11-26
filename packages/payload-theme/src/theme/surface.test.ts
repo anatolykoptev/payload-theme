@@ -54,6 +54,13 @@ describe('surfaceToCss', () => {
     expect(css).toContain('--pt-frame-radius: 0px;')
   })
 
+  it('lifts the widgets above the cards only when asked, through one order token', () => {
+    expect(surfaceToCss({ ...SURFACE_DEFAULTS, widgets: 'top' })).toContain(
+      '--pt-widgets-order: -1;',
+    )
+    expect(surfaceToCss(SURFACE_DEFAULTS)).not.toContain('--pt-widgets-')
+  })
+
   it('spells out every token in full mode, on the selectors it is given', () => {
     const css = surfaceToCss(SURFACE_DEFAULTS, {
       darkSelector: "html[data-theme='dark']:root",
@@ -65,5 +72,6 @@ describe('surfaceToCss', () => {
     expect(css).toContain('--theme-bg: #f4f4f6;')
     expect(css).toContain('--pt-ctl-h: 40px;')
     expect(css).toContain('--pt-frame-inset: 8px;')
+    expect(css).toContain('--pt-widgets-order: 1;')
   })
 })

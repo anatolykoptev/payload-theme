@@ -371,8 +371,11 @@ export async function Dashboard(props: DashboardViewServerProps) {
   ]
 
   // ---- custom widgets (plugin option `dashboard.widgets`) -------------------
-  // Rendered below everything built-in, resolved through the import map like
-  // any Payload custom component. No widgets configured → nothing renders.
+  // Rendered after everything built-in in the DOM, resolved through the import
+  // map like any Payload custom component. Whether they show below or above the
+  // cards is CSS only (--pt-widgets-order, the `widgets` surface option), so
+  // the header customizer can flip it before first paint. No widgets
+  // configured → nothing renders.
   const customWidgets: ResolvedDashboardWidget[] = theme?.dashboard?.widgets ?? []
 
   // Keep Payload's `gutter dashboard` classes so the layout rules in the

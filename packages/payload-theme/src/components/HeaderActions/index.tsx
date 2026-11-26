@@ -26,7 +26,9 @@ import {
   type ThemeFontKey,
   type ThemeFrame,
   type ThemeNeutral,
+  type ThemeWidgetsPosition,
   themeToCss,
+  WIDGETS_POSITIONS,
 } from '../../theme/index.js'
 import { useThemeTranslation } from '../../translations/useThemeTranslation.js'
 import { Icon } from '../Icon/index.js'
@@ -84,9 +86,10 @@ type Overrides = {
   layout?: 'centered' | 'full'
   neutral?: ThemeNeutral
   radius?: ThemeRadius
+  widgets?: ThemeWidgetsPosition
 }
 
-const SURFACE_KEYS = ['neutral', 'dark', 'density', 'frame'] as const
+const SURFACE_KEYS = ['neutral', 'dark', 'density', 'frame', 'widgets'] as const
 
 function readOverrides(): Overrides {
   try {
@@ -101,6 +104,7 @@ function readOverrides(): Overrides {
     if (parsed.dark && DARK_MODES.includes(parsed.dark)) out.dark = parsed.dark
     if (parsed.density && DENSITIES.includes(parsed.density)) out.density = parsed.density
     if (parsed.frame && FRAMES.includes(parsed.frame)) out.frame = parsed.frame
+    if (parsed.widgets && WIDGETS_POSITIONS.includes(parsed.widgets)) out.widgets = parsed.widgets
     if (
       typeof parsed.font === 'string' &&
       parsed.font !== 'default' &&
@@ -195,7 +199,7 @@ function applyOverrides(overrides: Overrides, base: SurfaceOptions = SURFACE_DEF
     fontLink?.remove()
   }
 
-  // neutral / dark depth / density / frame → one token block, spelled out in
+  // neutral / dark depth / density / frame / widgets position → one token block, spelled out in
   // full (defaults included) with doubled selectors, so a runtime choice beats
   // whatever the config emitted — including a switch back to the defaults
   const surfaceStyle = document.getElementById(SURFACE_STYLE_ID)
@@ -206,6 +210,7 @@ function applyOverrides(overrides: Overrides, base: SurfaceOptions = SURFACE_DEF
         density: overrides.density ?? base.density,
         frame: overrides.frame ?? base.frame,
         neutral: overrides.neutral ?? base.neutral,
+        widgets: overrides.widgets ?? base.widgets,
       },
       { darkSelector: "html[data-theme='dark']:root", full: true, rootSelector: ':root:root' },
     )
@@ -411,7 +416,10 @@ const Customizer: React.FC = () => {
     density: overrides.density ?? configSurface.density,
     frame: overrides.frame ?? configSurface.frame,
     neutral: overrides.neutral ?? configSurface.neutral,
+    widgets: overrides.widgets ?? configSurface.widgets,
   }
+  // the widgets control is only worth showing when there is something to move
+  const hasWidgets = (themeConfig?.dashboard?.widgets?.length ?? 0) > 0
 
   /** Set one surface option; picking the config's own value drops the override. */
   const pickSurface = <K extends (typeof SURFACE_KEYS)[number]>(
@@ -491,6 +499,9 @@ const Customizer: React.FC = () => {
     }
     if (activeSurface.dark !== SURFACE_DEFAULTS.dark) {
       lines.push(`  darkMode: '${activeSurface.dark}',`)
+    }
+    if (hasWidgets && activeSurface.widgets !== SURFACE_DEFAULTS.widgets) {
+      lines.push(`  dashboard: { widgetsPosition: '${activeSurface.widgets}' },`)
     }
     const snippet = `payloadTheme({\n${lines.join('\n')}\n})`
     const ok = await copyText(snippet)
@@ -737,6 +748,32 @@ const Customizer: React.FC = () => {
               ))}
             </div>
           </div>
+
+          {hasWidgets ? (
+            <div className="pt-custom__section">
+              <div className="pt-custom__label">{t('payloadTheme:widgets')}</div>
+              <div className="pt-custom__segments">
+                {WIDGETS_POSITIONS.map((position) => (
+                  <button
+                    aria-pressed={activeSurface.widgets === position}
+                    className={[
+                      'pt-custom__segment',
+                      activeSurface.widgets === position && 'pt-custom__segment--active',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    key={position}
+                    onClick={() => pickSurface('widgets', position)}
+                    type="button"
+                  >
+                    {position === 'top'
+                      ? t('payloadTheme:widgetsTop')
+                      : t('payloadTheme:widgetsBottom')}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="pt-custom__section">
             <div className="pt-custom__label">{t('payloadTheme:colorMode')}</div>

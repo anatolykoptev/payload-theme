@@ -9,6 +9,16 @@
  * light/dark both just work.
  * ==================================================================== */
 @layer payload {
+  /* Card grid and widget area stack in a flex column so the widgets' `order`
+   * can move them above the cards. Position is the `widgets` surface option:
+   * the grid keeps order 0, the widgets read --pt-widgets-order (fallback 1 =
+   * below; the option emits -1 for 'top'). Pure CSS, so the header
+   * customizer's pre-paint replay can flip it with no server round trip. */
+  .pt-dash {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
   .pt-dash__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -233,7 +243,8 @@
   }
 
   /* -- custom widget area (plugin option `dashboard.widgets`) ---------------
-   * A 12-column grid below the built-in dashboard content. Each widget cell
+   * A 12-column grid below the built-in dashboard content (or above it,
+   * see --pt-widgets-order). Each widget cell
    * is a plain container (no card chrome forced on it) so a widget can be a
    * card, a table, a chart — whatever the developer renders. Width comes
    * from the config: full = 12, half = 6, third = 4 columns; everything
@@ -243,7 +254,7 @@
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 16px;
-    margin-top: 16px;
+    order: var(--pt-widgets-order, 1);
   }
   .pt-dash__widget {
     display: flex;
