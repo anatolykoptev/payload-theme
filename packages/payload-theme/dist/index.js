@@ -17,7 +17,7 @@
  * })
  */ import { loadIconNodes, THEME_UI_ICONS } from './icons.js';
 import { resolveOptions } from './options.js';
-import { buildTheme, resolveFont, surfaceToCss, themeToCss } from './theme/index.js';
+import { buildTheme, dockedNavToCss, resolveFont, surfaceToCss, themeToCss } from './theme/index.js';
 import { withThemeTranslations } from './translations/index.js';
 const BOOL_CELL = 'payload-theme/client#BoolCell';
 const MEDIA_TOGGLE = 'payload-theme/client#MediaListToggle';
@@ -108,6 +108,9 @@ const MEDIA_TOGGLE = 'payload-theme/client#MediaListToggle';
         // block's cssVariables come later and stay the ultimate escape hatch.
         const surfaceCss = surfaceToCss(resolved.surface);
         if (surfaceCss) resolved.css = `${surfaceCss}\n${resolved.css}`;
+        // The docked-sidebar band (`nav.dockedMinWidth`): only emitted when set.
+        const dockedCss = dockedNavToCss(resolved.nav.dockedMinWidth);
+        if (dockedCss) resolved.css += `\n${dockedCss}`;
         // Font override rides along in the same injected <style>. Payload declares
         // `--font-body` outside any cascade layer, so this override must be
         // unlayered too — a layered declaration would always lose.

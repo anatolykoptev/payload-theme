@@ -96,6 +96,12 @@
     --pt-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.09), 0 2px 4px -2px rgb(0 0 0 / 0.09);
     --pt-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
+    /* Docked sidebar: the open/close slide of the grid and the hairline the
+     * content card keeps against it. Read by layout/frame.css and, for the
+     * `nav.dockedMinWidth` band, by theme/dock.ts — one value, two readers. */
+    --pt-nav-slide: 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    --pt-nav-edge: 1px;
+
     /* App-wide accent focus ring. Payload's outline is already 2px solid with
      * a 2px offset (the shadcn geometry); we only swap the colour to accent. */
     --accessibility-outline: 2px solid var(--pt-accent-ring);
@@ -1311,7 +1317,7 @@
   /* the collapse/expand itself animates the grid track */
   @media (min-width: 1441px) and (prefers-reduced-motion: no-preference) {
     .template-default--nav-animate {
-      transition: grid-template-columns 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+      transition: grid-template-columns var(--pt-nav-slide);
     }
   }
 
@@ -1353,7 +1359,7 @@
    * (≤1440px the sidebar is an overlay drawer, so there is no seam) */
   @media (min-width: 1441px) {
     .template-default--nav-open .template-default__wrap {
-      border-inline-start-width: 1px;
+      border-inline-start-width: var(--pt-nav-edge);
     }
   }
 
@@ -1792,7 +1798,7 @@
   }
   @media (max-width: 1440px) {
     .pt-nav-collapse {
-      display: none; /* the mobile drawer brings its own toggler */
+      display: none; /* the mobile drawer brings its own toggler (theme/dock.ts undoes this for nav.dockedMinWidth) */
     }
   }
 
@@ -3265,7 +3271,9 @@
     display: none;
   }
 
-  /* ---- the drawer (≤1440px) ---- */
+  /* ---- the drawer (≤1440px) ----
+   * `nav.dockedMinWidth` docks the sidebar again from a lower width: every
+   * property set below must be undone in theme/dock.ts (dock.test.ts checks). */
   @media (max-width: 1440px) {
     /* The drawer is an OVERLAY — the template grid must never reserve a
      * nav column for it. Payload's stock rule pushes the content aside by
@@ -3303,7 +3311,6 @@
       z-index: 120; /* above the sticky app header, below palette/modals */
       width: 100%;
       height: 100dvh;
-      border-right: 0;
       background: transparent;
       opacity: 1;
       overflow: visible;

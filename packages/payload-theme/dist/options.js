@@ -3,7 +3,7 @@
  * validates them and fills defaults. Everything a component needs at runtime is
  * serializable (strings only) so it can cross Payload's server→client boundary
  * via `admin.custom`.
- */ import { DARK_MODES, DENSITIES, FRAMES, NEUTRALS, normalizeHex, resolveFont, SURFACE_DEFAULTS, WIDGETS_POSITIONS } from './theme/index.js';
+ */ import { DARK_MODES, DENSITIES, DOCKED_MIN_WIDTH_FLOOR, DRAWER_MAX_WIDTH, FRAMES, NEUTRALS, normalizeHex, resolveFont, SURFACE_DEFAULTS, WIDGETS_POSITIONS } from './theme/index.js';
 /**
  * The six built-in looks, shared by the `preset` option and the header
  * customizer's preset row — one list, so a config-set preset and a clicked one
@@ -222,6 +222,8 @@ function normalizeAsset(value, name) {
     for (const [slug, name] of Object.entries(icons)){
         assert(typeof name === 'string', `nav.icons['${slug}'] must be a string lucide icon name.`);
     }
+    const dockedMinWidth = options.nav?.dockedMinWidth ?? null;
+    assert(dockedMinWidth === null || Number.isInteger(dockedMinWidth) && dockedMinWidth >= DOCKED_MIN_WIDTH_FLOOR && dockedMinWidth <= DRAWER_MAX_WIDTH, `nav.dockedMinWidth must be a whole number of pixels from ${DOCKED_MIN_WIDTH_FLOOR} to ${DRAWER_MAX_WIDTH}, got '${String(dockedMinWidth)}'. Tablets (1024px and below) always keep the drawer, and above ${DRAWER_MAX_WIDTH}px the sidebar is docked already.`);
     const logo = normalizeAsset(options.logo, 'logo');
     const icon = normalizeAsset(options.icon, 'icon');
     const logoLink = normalizeLogoLink(options.logoLink);
@@ -269,6 +271,7 @@ function normalizeAsset(value, name) {
             logoLink,
             avatar,
             nav: {
+                dockedMinWidth,
                 icons
             },
             login: {

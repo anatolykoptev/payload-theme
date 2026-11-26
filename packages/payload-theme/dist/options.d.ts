@@ -70,6 +70,17 @@ export interface NavOptions {
      * folder icon.
      */
     icons?: Record<string, string>;
+    /**
+     * Dock the sidebar from this viewport width up, instead of only above
+     * 1440px. Payload force-closes its nav at 1440px and below, and the theme
+     * shows it as an overlay drawer there, so a 1440px laptop starts with no
+     * visible sidebar. Set this (e.g. `1280`) and from that width to 1440px the
+     * sidebar is docked, open by default and collapsible with the header chip,
+     * exactly as above 1440px; below it the drawer stays. A whole number from
+     * 1025 (Payload's tablet breakpoint is 1024) to 1440.
+     * @default undefined — the drawer covers everything up to 1440px
+     */
+    dockedMinWidth?: number;
 }
 /** Grid width of one dashboard widget. @default 'half' */
 export type DashboardWidgetWidth = 'full' | 'half' | 'third';
@@ -250,6 +261,8 @@ export interface ResolvedThemeConfig {
     /** Avatar source, or null when the `avatar` option is omitted. */
     avatar: null | ResolvedAvatar;
     nav: {
+        /** Viewport width the docked sidebar starts at, or null for Payload's 1440px. */
+        dockedMinWidth: null | number;
         icons: Record<string, string>;
     };
     /** Unset fields fall back to the defaults at render time. */

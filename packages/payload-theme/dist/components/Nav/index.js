@@ -6,6 +6,7 @@ import { PayloadLogo } from '@payloadcms/ui/graphics/Logo';
 import { usePathname } from 'next/navigation.js';
 import { formatAdminURL } from 'payload/shared';
 import React from 'react';
+import { drawerQuery } from '../../theme/index.js';
 import { useThemeTranslation } from '../../translations/useThemeTranslation.js';
 import { CommandPalette } from '../CommandPalette/index.js';
 import { DocOutline } from '../DocOutline/index.js';
@@ -13,6 +14,7 @@ import { Icon } from '../Icon/index.js';
 import { ShortcutsModal } from '../ShortcutsModal/index.js';
 import { UserMenu } from '../UserMenu/index.js';
 import { resolveIconName } from '../navIcons.js';
+import { useDockedNav, useIsomorphicLayoutEffect } from '../useDockedNav.js';
 const NavItemLink = ({ exact, item, pathname })=>{
     const { href, iconName, id, label } = item;
     // Same active check as Payload's DefaultNav: the link is active on its own
@@ -97,8 +99,6 @@ const NavItemLink = ({ exact, item, pathname })=>{
  * reason as the icon cache: Payload renders the Nav inside `DefaultTemplate`,
  * which belongs to the page rather than the layout, so every navigation
  * remounts the sidebar and throws its scrolled `<nav>` node away. */ let navScrollTop = 0;
-/** SSR-safe layout effect: restoring the offset must happen before the browser
- * paints, but the Nav is server-rendered too and `useLayoutEffect` warns there. */ const useIsomorphicLayoutEffect = typeof window === 'undefined' ? React.useEffect : React.useLayoutEffect;
 /**
  * Keeps the menu's scroll offset across navigations: remembers it while the
  * user scrolls and puts it back on the next mount, so clicking a collection
@@ -129,16 +129,21 @@ export const Nav = ()=>{
     const { isEntityVisible } = useEntityVisibility();
     const { hydrated, navOpen, navRef, setNavOpen, shouldAnimate } = useNav();
     const menuRef = useNavScrollMemory();
+    const theme = config.admin?.custom?.payloadTheme;
+    const dockedMinWidth = theme?.nav?.dockedMinWidth ?? null;
+    useDockedNav(dockedMinWidth);
     // Close the mobile drawer when the command palette opens (from ⌘K OR the
     // search pill), so the palette never layers over/beside the open drawer.
-    // Desktop (>1440px) keeps its always-on nav — hence the media-query gate.
+    // Desktop (>1440px, or from `nav.dockedMinWidth` up) keeps its always-on
+    // nav — hence the media-query gate.
     React.useEffect(()=>{
+        const isDrawer = ()=>window.matchMedia(drawerQuery(dockedMinWidth)).matches;
         const onPaletteOpen = ()=>{
-            if (window.matchMedia('(max-width: 1440px)').matches) setNavOpen(false);
+            if (isDrawer()) setNavOpen(false);
         };
         // Esc also closes the mobile drawer (it has no X — backdrop tap or Esc).
         const onKeyDown = (event)=>{
-            if (event.key === 'Escape' && window.matchMedia('(max-width: 1440px)').matches) setNavOpen(false);
+            if (event.key === 'Escape' && isDrawer()) setNavOpen(false);
         };
         window.addEventListener('pt:palette-open', onPaletteOpen);
         window.addEventListener('keydown', onKeyDown);
@@ -147,9 +152,9 @@ export const Nav = ()=>{
             window.removeEventListener('keydown', onKeyDown);
         };
     }, [
+        dockedMinWidth,
         setNavOpen
     ]);
-    const theme = config.admin?.custom?.payloadTheme;
     const { collections, globals, routes: { admin: adminRoute } } = config;
     // ---- build nav groups (mirrors @payloadcms/ui's groupNavItems) ----------
     const defaultCollectionsGroup = {

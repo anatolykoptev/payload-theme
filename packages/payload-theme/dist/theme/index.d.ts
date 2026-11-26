@@ -51,3 +51,4 @@ export { isValidHex, normalizeHex } from './validate.js';
 export { themeToCss, type ThemeCssOptions } from './css.js';
 export { FONT_KEYS, FONT_PRESETS, resolveFont, type ThemeFontKey } from './fonts.js';
 export { DARK_MODES, DARK_TOKENS, DENSITIES, DENSITY_TOKENS, FRAMES, FRAME_TOKENS, NEUTRAL_PALETTES, NEUTRALS, neutralLadder, SURFACE_DEFAULTS, surfaceToCss, WIDGETS_POSITIONS, WIDGETS_TOKENS, type SurfaceCssOptions, type SurfaceOptions, type ThemeDarkMode, type ThemeDensity, type ThemeFrame, type ThemeNeutral, type ThemeWidgetsPosition, } from './surface.js';
+export { DOCKED_MIN_WIDTH_FLOOR, DRAWER_MAX_WIDTH, dockedBandQuery, dockedNavToCss, drawerQuery, } from './dock.js';
