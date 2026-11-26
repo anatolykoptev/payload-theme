@@ -18,6 +18,11 @@ All notable changes to `payload-theme` are documented here. The format follows
   carry `documentCount_few` / `_many` (and `_zero` / `_two`) next to
   `_one` / `_other`; the locale test treats them as optional.
 
+- **`customizer` option** — `boolean`, default `true` (#20). `false` removes
+  the live theme customizer from the header, so every user sees the look
+  your config defines. Overrides a browser saved while the customizer was on
+  are no longer applied, so nobody is left with a look they can't reset.
+
 ### Fixed
 
 - **A select / relationship field's clear and chevron icons dropped to a second
