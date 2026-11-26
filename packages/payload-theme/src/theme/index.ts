@@ -129,3 +129,10 @@ export {
   type ThemeNeutral,
   type ThemeWidgetsPosition,
 } from './surface.js'
+export {
+  DOCKED_MIN_WIDTH_FLOOR,
+  DRAWER_MAX_WIDTH,
+  dockedBandQuery,
+  dockedNavToCss,
+  drawerQuery,
+} from './dock.js'
