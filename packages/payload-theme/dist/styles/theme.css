@@ -1,0 +1,5687 @@
+/*
+ * payload-theme — the static restyle layer.
+ *
+ * Everything lives in @layer payload. Payload ships its defaults in
+ * @layer payload-default and pre-declares the order `payload-default, payload`,
+ * so our rules win the cascade without a specificity fight or !important.
+ *
+ * The accent scale (--pt-accent-*) is NOT here — the plugin computes it from
+ * your `accent` option and injects it at runtime (ThemeProvider), so a single
+ * hex recolours every rule below.
+ *
+ * DESIGN LANGUAGE — shadcn "inset" admin:
+ *   · the page background is a quiet zinc gray; the sidebar sits directly on
+ *     it (no chrome of its own)
+ *   · ALL content lives in one white, rounded, bordered card floating on that
+ *     gray, with a sticky translucent header at its top
+ *   · neutrals are the zinc scale; borders are thin and calm; shadows follow
+ *     the shadcn xs/sm/md/lg steps; hovers are neutral washes — the accent is
+ *     reserved for primary actions, active nav and focus.
+ */
+
+/*
+ * MODULE INDEX — the build inlines these imports (in this exact order) into
+ * the single dist/styles/theme.css consumers load. Order matters: unlayered
+ * overrides must stay last, and files concatenate into one cascade.
+ */
+@layer payload {
+  /* ------------------------------------------------------------------ *
+   * FOUNDATION — zinc neutrals + surfaces
+   *
+   * Payload derives every --theme-elevation-* rung from --color-base-*, so
+   * retargeting the base scale to zinc (the reference palette) re-tints the
+   * entire panel — light and dark — in one block. Interpolated mid-steps
+   * (150/250/350/…) keep Payload's 21-step ladder monotonic.
+   * ------------------------------------------------------------------ */
+  :root {
+    --color-base-0: #ffffff;
+    --color-base-50: #fafafa;
+    --color-base-100: #f4f4f5;
+    --color-base-150: #ececee;
+    --color-base-200: #e4e4e7;
+    --color-base-250: #dcdce0;
+    --color-base-300: #d4d4d8;
+    --color-base-350: #bbbbc1;
+    --color-base-400: #a1a1aa;
+    --color-base-450: #898992;
+    --color-base-500: #71717a;
+    --color-base-550: #62626a;
+    --color-base-600: #52525b;
+    --color-base-650: #494950;
+    --color-base-700: #3f3f46;
+    --color-base-750: #333338;
+    --color-base-800: #27272a;
+    --color-base-850: #1f1f22;
+    --color-base-900: #18181b;
+    --color-base-950: #09090b;
+    --color-base-1000: #030303;
+
+    /* zinc-100: the gray field the sidebar and the content card sit on */
+    --theme-bg: #f4f4f6;
+    /* zinc-200 — the shadcn card/table border */
+    --theme-border-color: var(--theme-elevation-200);
+    /* inputs get the slightly darker border shadcn gives form controls */
+    --pt-input-border: var(--theme-elevation-250);
+
+    /* Semantic status colors for the theme's own accents (bool tick chips,
+     * toast icons, dashboard trend deltas). Payload's --theme-success-* scale
+     * is BLUE (it doubles as its info color), so anything painted with it
+     * reads as accent noise — these are real greens/ambers instead, tuned
+     * per scheme below. */
+    --pt-ok: #16a34a;
+    --pt-ok-text: #15803d;
+    --pt-warn: #d97706;
+    --pt-warn-text: #b45309;
+    --pt-danger: #dc2626;
+    --pt-danger-text: #b91c1c;
+    --pt-info: #2563eb;
+    --pt-info-text: #1d4ed8;
+
+    /* Type scale — every theme-owned font size reads one of these rungs
+     * (Payload's root is 13px, so `base` is body text). One ladder keeps the
+     * panel's sizes coherent, and a cssVariables tweak rescales it evenly. */
+    --pt-text-3xs: 9.5px;
+    --pt-text-2xs: 10.5px;
+    --pt-text-xs: 11.5px;
+    --pt-text-sm: 12.5px;
+    --pt-text-base: 13px;
+    --pt-text-lg: 15px;
+    --pt-text-xl: 17px;
+    --pt-text-2xl: 21px;
+    --pt-text-3xl: 27px;
+
+    /* shadcn shadow steps */
+    --pt-shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --pt-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
+    --pt-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.09), 0 2px 4px -2px rgb(0 0 0 / 0.09);
+    --pt-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+    /* App-wide accent focus ring. Payload's outline is already 2px solid with
+     * a 2px offset (the shadcn geometry); we only swap the colour to accent. */
+    --accessibility-outline: 2px solid var(--pt-accent-ring);
+  }
+
+  html[data-theme='dark'] {
+    /* zinc-900: the dark gray field (reference dark sidebar). Read through
+     * the base ladder so the `neutral` option retints it too. */
+    --theme-bg: var(--color-base-900);
+
+    /* brighter status hues so the dots register on near-black */
+    --pt-ok: #22c55e;
+    --pt-ok-text: #4ade80;
+    --pt-warn: #f59e0b;
+    --pt-warn-text: #fbbf24;
+    --pt-danger: #ef4444;
+    --pt-danger-text: #f87171;
+    --pt-info: #3b82f6;
+    --pt-info-text: #60a5fa;
+
+    /* Shift the bottom of the dark elevation ladder one rung darker so the
+     * content card lands on zinc-950 (the reference dark background) and the
+     * card border on zinc-800 — text rungs (300+) keep Payload's mapping.
+     * (`darkMode: 'dim'` re-declares these one rung lighter at runtime.) */
+    --theme-elevation-0: var(--color-base-950);
+    --theme-elevation-50: var(--color-base-900);
+    --theme-elevation-100: var(--color-base-850);
+    --theme-elevation-150: var(--color-base-800);
+    --theme-elevation-200: var(--color-base-750);
+    --theme-elevation-250: var(--color-base-700);
+
+    /* zinc-800 borders, zinc-700 input borders (the reference dark tokens) */
+    --theme-border-color: var(--theme-elevation-150);
+    --pt-input-border: var(--theme-elevation-250);
+
+    /* dark shadows need more weight to register on near-black */
+    --pt-shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+    --pt-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.45), 0 1px 2px -1px rgb(0 0 0 / 0.45);
+    --pt-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.45), 0 2px 4px -2px rgb(0 0 0 / 0.45);
+    --pt-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
+
+    --accessibility-outline: 2px solid var(--pt-accent-ring);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * accent binding — colour only. The accent paints primary actions;
+   * secondary/outline buttons are NEUTRAL (the shadcn outline variant),
+   * so the panel reads calm and the accent reads intentional.
+   * ------------------------------------------------------------------ */
+  .btn--style-primary {
+    --bg-color: var(--pt-accent);
+    --color: var(--pt-accent-contrast);
+    --hover-bg: var(--pt-accent-hover);
+    --hover-color: var(--pt-accent-contrast);
+  }
+
+  /* shadcn outline button: neutral border, plain text, muted wash on hover */
+  .btn--style-secondary {
+    --color: var(--theme-text);
+    --btn-border: 1px solid var(--theme-border-color);
+    --hover-color: var(--theme-text);
+    --hover-btn-border: 1px solid var(--theme-elevation-300);
+    --hover-bg: color-mix(in srgb, var(--theme-elevation-500) 8%, transparent);
+  }
+}
+/* ==================================================================== *
+ * BUTTONS — shape & state
+ *
+ * Colour binding (primary/outline) lives in the accent-binding section
+ * above; here buttons get the shadcn silhouette: 8px corners (via the
+ * radius token), font-medium labels, an xs shadow on solid/outline
+ * variants, quiet transitions. The visual box is `.btn` itself; radius is
+ * scoped to the text-button styles so Payload's round icon buttons stay
+ * round.
+ * ==================================================================== */
+@layer payload {
+  .btn {
+    transition:
+      background-color 0.12s ease,
+      border-color 0.12s ease,
+      box-shadow 0.12s ease,
+      color 0.12s ease;
+  }
+
+  .btn--style-primary,
+  .btn--style-secondary,
+  .btn--style-subtle,
+  .btn--style-pill {
+    --btn-font-weight: 500;
+    border-radius: var(--pt-radius-ctl);
+  }
+
+  .btn--style-primary,
+  .btn--style-secondary {
+    box-shadow: var(--pt-shadow-xs);
+  }
+
+  /* subtle buttons hover with a neutral wash, not an accent tint */
+  .btn--style-subtle {
+    --hover-bg: color-mix(in srgb, var(--theme-elevation-500) 8%, transparent);
+  }
+}
+/* ==================================================================== *
+ * FORMS — inputs + checkbox-as-toggle
+ *
+ * shadcn Input anatomy for text-like fields (thin zinc border, xs shadow,
+ * calm bg, accent border + soft 3px ring on focus) and a track/thumb
+ * switch for boolean fields. The toggle is scoped to `.field-type.checkbox`
+ * so the table's bulk-select checkboxes stay checkboxes. Form behaviour is
+ * untouched — we only restyle the box; the real <input> keeps its checked
+ * logic.
+ * ==================================================================== */
+@layer payload {
+  /* ---- text-like inputs + textarea ---- */
+  .field-type input:not([type='checkbox']):not(.section-title__input),
+  .field-type textarea {
+    border: 1px solid var(--pt-input-border);
+    border-radius: var(--pt-radius-ctl);
+    box-shadow: var(--pt-shadow-xs);
+    transition:
+      border-color 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+
+  .field-type input:not([type='checkbox']):not(.section-title__input):focus,
+  .field-type input:not([type='checkbox']):not(.section-title__input):focus-visible,
+  .field-type textarea:focus,
+  .field-type textarea:focus-visible {
+    outline: none;
+    background: var(--theme-input-bg);
+    border: 1px solid var(--pt-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pt-accent-ring) 18%, transparent);
+  }
+
+  /* ---- code / JSON fields: the Monaco box wears the input frame. Its
+   * colors are Monaco's own, set unlayered — see overrides/unlayered.css */
+  .field-type .code-editor {
+    border: 1px solid var(--pt-input-border);
+    border-radius: var(--pt-radius-ctl);
+    box-shadow: var(--pt-shadow-xs);
+    transition:
+      border-color 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  .field-type .code-editor:focus-within {
+    border-color: var(--pt-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pt-accent-ring) 18%, transparent);
+  }
+  /* the border above out-ranks Payload's error border — restate it */
+  .code-field.error .code-editor {
+    border-color: var(--theme-error-500);
+  }
+
+  /* ---- search inputs share the same language ---- */
+  .search-filter__input {
+    border-radius: var(--pt-radius-ctl);
+    transition:
+      border-color 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  .search-filter__input:focus,
+  .search-filter__input:focus-visible {
+    outline: none;
+    border: 1px solid var(--pt-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pt-accent-ring) 18%, transparent);
+  }
+
+  /* ---- checkbox -> toggle (form fields only) ---- */
+  .field-type.checkbox .checkbox-input__input {
+    width: 34px;
+    height: 20px;
+    border-radius: 999px; /* switches stay round at every radius setting */
+    border: 1px solid var(--theme-elevation-250);
+    background: var(--theme-elevation-200);
+    box-shadow: none;
+    flex-shrink: 0;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
+  }
+
+  /* reuse the check-icon holder as the sliding thumb */
+  .field-type.checkbox .checkbox-input__icon {
+    position: absolute;
+    top: 50%;
+    inset-inline-start: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+    transform: translateY(-50%);
+    transition: transform 0.15s ease;
+  }
+  .field-type.checkbox .checkbox-input__icon svg {
+    display: none;
+  }
+
+  /* checked: accent track + thumb slides across */
+  .field-type.checkbox .checkbox-input--checked .checkbox-input__input {
+    background: var(--pt-accent);
+    border-color: var(--pt-accent);
+  }
+  .field-type.checkbox .checkbox-input--checked .checkbox-input__icon {
+    transform: translate(16px, -50%);
+  }
+
+  /* Payload paints the checkbox focus glow with a hard-coded, !important
+   * box-shadow that reads --theme-success-400. Across cascade layers an
+   * !important in the earlier `payload-default` layer beats our !important,
+   * so we can't override the box-shadow directly. Instead we reassign that
+   * variable locally to a faint accent, softening the glow to a subtle halo,
+   * and mark focus with an accent border. */
+  .field-type.checkbox
+    .checkbox-input:not(.checkbox-input--read-only):focus-within
+    .checkbox-input__input,
+  .field-type.checkbox
+    .checkbox-input:not(.checkbox-input--read-only):active
+    .checkbox-input__input {
+    --theme-success-400: color-mix(in srgb, var(--pt-accent-ring) 18%, transparent);
+    border-color: var(--pt-accent);
+  }
+}
+
+/* ==================================================================== *
+ * SELECT — react-select trigger + popover
+ *
+ * Payload styles .rs__* in its own layer, so our layer wins cleanly.
+ * ==================================================================== */
+@layer payload {
+  .rs__control {
+    border: 1px solid var(--pt-input-border);
+    border-radius: var(--pt-radius-ctl);
+    box-shadow: var(--pt-shadow-xs);
+    transition:
+      border-color 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  .rs__control--is-focused {
+    border-color: var(--pt-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pt-accent-ring) 18%, transparent);
+  }
+
+  /* dropdown menu = shadcn popover */
+  .rs__menu {
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-md);
+    overflow: hidden;
+    /* Payload renders this menu inline (no portal) and ships it at z-index 4;
+     * lift it so it sits over sibling fields when it overflows a card whose
+     * clip we release in structured-fields.css (`:has(.rs__menu)`). */
+    z-index: 20;
+  }
+  .rs__menu-list {
+    padding: 4px;
+  }
+  .rs__option {
+    border-radius: var(--pt-radius-item);
+    transition: background-color 0.1s ease;
+  }
+  .rs__option--is-focused {
+    background-color: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+    color: var(--theme-text);
+  }
+  .rs__option--is-selected {
+    background-color: color-mix(in srgb, var(--pt-accent) 10%, transparent);
+    color: var(--pt-accent);
+    font-weight: 600;
+  }
+  .rs__option--is-selected.rs__option--is-focused {
+    background-color: color-mix(in srgb, var(--pt-accent) 16%, transparent);
+  }
+
+  /* multi-value chips -> quiet neutral badges */
+  .rs__multi-value {
+    border-radius: 999px;
+    background: var(--theme-elevation-100);
+  }
+}
+
+/* ==================================================================== *
+ * DATE PICKER — shadcn Calendar
+ *
+ * react-datepicker ships its own default stylesheet with hard-coded colours
+ * (#216ba5 selected, #f0f0f0 hover) that Payload does not theme. These rules
+ * are UNLAYERED on purpose so they reliably win over that third-party sheet.
+ * ==================================================================== */
+.react-datepicker {
+  border: 1px solid var(--theme-border-color);
+  border-radius: var(--pt-radius-card);
+  box-shadow: var(--pt-shadow-md);
+  background: var(--theme-elevation-0);
+  color: var(--theme-text);
+  font-family: var(--font-body);
+}
+.react-datepicker__header {
+  background: transparent;
+  border-bottom: 1px solid var(--theme-elevation-100);
+}
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker__day-name,
+.react-datepicker__day,
+.react-datepicker__time-name {
+  color: var(--theme-text);
+}
+.react-datepicker__day--outside-month {
+  color: var(--theme-elevation-400);
+}
+.react-datepicker__day:hover {
+  background: color-mix(in srgb, var(--theme-elevation-500) 12%, transparent);
+}
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected,
+.react-datepicker__day--in-range {
+  background: var(--pt-accent);
+  color: var(--pt-accent-contrast);
+}
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--keyboard-selected:hover {
+  background: var(--pt-accent-hover);
+}
+.react-datepicker__day--today {
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--pt-accent);
+}
+/* ==================================================================== *
+ * TABLE / LIST — selection, sort, pagination
+ *
+ * No dedicated "selected row" class exists, so we key off the row-select
+ * checkbox's own --checked state via :has(). Table select checkboxes stay
+ * checkboxes (the toggle is scoped to .field-type.checkbox) but pick up the
+ * accent when checked.
+ * ==================================================================== */
+@layer payload {
+  /* selected row = faint accent wash (selection is a deliberate state) */
+  .table tbody tr:has(.checkbox-input--checked) {
+    --pt-row-wash: color-mix(in srgb, var(--pt-accent) 7%, transparent);
+    background: var(--pt-row-wash);
+  }
+
+  /* row + header select checkboxes: accent box + contrast check when checked */
+  .checkbox-input--checked .checkbox-input__input {
+    background: var(--pt-accent);
+    border-color: var(--pt-accent);
+  }
+  .checkbox-input--checked .checkbox-input__icon,
+  .checkbox-input--checked .checkbox-input__icon svg,
+  .checkbox-input--checked .checkbox-input__icon .stroke {
+    color: var(--pt-accent-contrast);
+    stroke: var(--pt-accent-contrast);
+  }
+
+  /* active sort direction arrow = accent */
+  .sort-column__button.sort-column--active {
+    color: var(--pt-accent);
+  }
+
+  /* pagination: current page = accent, others get a neutral hover */
+  .paginator__page {
+    border-radius: var(--pt-radius-item);
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+  }
+  .paginator__page--is-current {
+    background: var(--pt-accent);
+    color: var(--pt-accent-contrast);
+  }
+  .paginator__page:not(.paginator__page--is-current):not(:disabled):hover {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+    color: var(--theme-text);
+  }
+
+  /* ---- bulk selection bar: muted count + chip actions ----
+   * Payload renders "1 selected — Select all (10) — Edit Publish … Delete"
+   * as underlined text links; here every action becomes a small outline
+   * chip and the em-dash separators go away (chips separate themselves). */
+  .list-selection {
+    gap: 10px;
+    font-size: var(--pt-text-base);
+    color: var(--theme-elevation-500);
+  }
+  .list-selection > span:not(:first-child) {
+    display: none; /* the "—" separators */
+  }
+  .list-selection__actions {
+    align-items: center;
+    gap: 6px;
+  }
+  .list-selection__button {
+    padding: 4px 11px;
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: 999px;
+    color: var(--theme-elevation-600);
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+    text-decoration: none;
+    box-shadow: var(--pt-shadow-xs);
+    transition:
+      background-color 0.12s ease,
+      border-color 0.12s ease,
+      color 0.12s ease;
+  }
+  html[data-theme='dark'] .list-selection__button {
+    background: var(--theme-elevation-50);
+  }
+  .list-selection__button:hover,
+  .list-selection__button:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 8%, transparent);
+    border-color: var(--theme-elevation-300);
+    color: var(--theme-text);
+    text-decoration: none;
+  }
+
+  /* Mobile: Payload pins the selection bar to the viewport bottom as a
+   * `position: fixed; width: 100%` strip WITHOUT a `left`, so it inherits
+   * the content gutter's offset — overflowing the right edge — and its
+   * opaque background sits over the pagination row. Put it back IN FLOW
+   * under the page controls: container-wide, chips wrapping onto rows. */
+  @media (max-width: 768px) {
+    .collection-list__list-selection {
+      position: static;
+      width: 100%;
+      padding: 10px 0 0;
+      background: transparent;
+    }
+    .collection-list__list-selection .list-selection {
+      flex-wrap: wrap;
+      row-gap: 8px;
+      margin-left: 0;
+      margin-bottom: 0;
+    }
+    .list-selection__actions {
+      flex-wrap: wrap;
+      row-gap: 8px;
+    }
+  }
+}
+
+/* ==================================================================== *
+ * Soften Payload's hard-coded checkbox focus glow for ALL checkboxes
+ * (table selects included), same mechanism as the forms module: reassign
+ * the --theme-success-400 the !important box-shadow reads, to a faint accent.
+ * ==================================================================== */
+@layer payload {
+  .checkbox-input:not(.checkbox-input--read-only):focus-within .checkbox-input__input,
+  .checkbox-input:not(.checkbox-input--read-only):active .checkbox-input__input {
+    --theme-success-400: color-mix(in srgb, var(--pt-accent-ring) 16%, transparent);
+  }
+}
+
+/* ==================================================================== *
+ * TABLE — resting-state shadcn look
+ *
+ * shadcn Table: no zebra stripes, thin row separators, a muted header band
+ * with a clean bottom rule, and a NEUTRAL row hover (bg-muted/50 in the
+ * reference) — the accent only appears for selection/sort/pagination.
+ * ==================================================================== */
+@layer payload {
+  .table tbody tr {
+    transition: background-color 0.1s ease;
+  }
+  /* row washes go through --pt-row-wash so the sticky cells below can
+   * repaint the same tint over their opaque backing */
+  .table tbody tr:hover {
+    --pt-row-wash: color-mix(in srgb, var(--theme-elevation-500) 6%, transparent);
+    background: var(--pt-row-wash);
+  }
+  /* keep selected rows clearly stronger than hover */
+  .table tbody tr:has(.checkbox-input--checked):hover {
+    --pt-row-wash: color-mix(in srgb, var(--pt-accent) 11%, transparent);
+    background: var(--pt-row-wash);
+  }
+
+  /* drop the zebra striping. Same specificity as the hover/selected rules
+   * above and later in the file, so it paints the row's wash rather than
+   * `transparent` — otherwise odd rows would never show hover/selection. */
+  .table tbody tr:nth-child(odd) {
+    background: var(--pt-row-wash, transparent);
+    border-radius: 0;
+  }
+
+  /* muted header with a clean bottom rule */
+  .table thead {
+    color: var(--theme-elevation-500);
+  }
+  .table thead th {
+    font-weight: 500;
+    border-bottom: 1px solid var(--theme-border-color);
+  }
+
+  /* thin separators between rows */
+  .table tbody td {
+    border-bottom: 1px solid var(--theme-elevation-100);
+  }
+
+  /* cell links: no underline (shadcn) — hover shifts to accent instead */
+  .table a {
+    text-decoration: none;
+  }
+  .table a:hover,
+  .table a:focus-visible {
+    text-decoration: none;
+    color: var(--pt-accent);
+  }
+}
+
+/* ==================================================================== *
+ * TABLE — card frame + value badges
+ *
+ * Wrap the table in a rounded, bordered card (overflow:auto from Payload
+ * clips to the radius, so horizontal scroll still works). Payload tags each
+ * select value with a `.selected--<value>` class; those badges (neutral or
+ * status-toned) live in the list module.
+ * ==================================================================== */
+@layer payload {
+  .table {
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    background: var(--theme-elevation-0);
+    box-shadow: var(--pt-shadow-xs);
+  }
+
+  /* subtle header band; the card's radius clips its top corners */
+  .table thead th {
+    background: var(--theme-elevation-50);
+  }
+  /* the card border is the bottom edge, so drop the last row separator */
+  .table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  /* softly rounded select checkboxes */
+  .table .checkbox-input__input {
+    border-radius: 5px;
+  }
+
+  /* boolean cell fallback (fields that kept Payload's stock CheckboxCell —
+   * the plugin normally swaps in the BoolCell chip below) */
+  .bool-cell {
+    display: inline-flex;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--theme-elevation-100);
+    color: var(--theme-elevation-600);
+    font-family: var(--font-body);
+    font-size: var(--pt-text-2xs);
+  }
+}
+
+/* ==================================================================== *
+ * LIST BADGES — boolean icon chips
+ *
+ * The BoolCell component (swapped in for every checkbox column by the
+ * plugin) renders `.pt-bool`: a small round chip carrying only an icon —
+ * green tick for true, muted X for false.
+ * ==================================================================== */
+@layer payload {
+  .pt-bool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+
+    svg {
+      flex-shrink: 0;
+      width: 12px;
+      height: 12px;
+    }
+  }
+  .pt-bool--true {
+    background: color-mix(in srgb, var(--pt-ok) 14%, transparent);
+    color: var(--pt-ok-text);
+  }
+  .pt-bool--false {
+    background: var(--theme-elevation-100);
+    color: var(--theme-elevation-400);
+  }
+}
+
+/* ==================================================================== *
+ * TABLE — sticky header row + sticky identity column (list views)
+ *
+ * Payload's .table is already the scroll container (overflow: auto), so a
+ * sticky <thead> could only ever stick inside it. Capping its height to the
+ * viewport makes long pages scroll INSIDE the table card: the header row
+ * stays put, and the row's identity (select box + first data column) stays
+ * put while wide tables scroll sideways. Short lists never reach the cap
+ * and look exactly as before. The media grid view has its own layout and
+ * is left alone; phones keep the plain flow.
+ *
+ * Body cells carry `cell-<field>` classes; header cells only an
+ * `id="heading-<field>"`, matched here by attribute (class-weight
+ * specificity) for the two utility columns: row select and drag handle.
+ * ==================================================================== */
+@layer payload {
+  @media (min-width: 769px) {
+    .collection-list:not(:has(.pt-media-toggle[data-view='grid'])) .table {
+      --pt-util-col: 48px;
+      max-height: var(--pt-table-max-h, calc(100dvh - 190px));
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: var(--theme-elevation-250) transparent;
+    }
+
+    /* utility columns get a fixed width so the column after them knows
+     * exactly where to stick */
+    .collection-list
+      .table
+      :is(.cell-_select, .cell-_dragHandle, [id='heading-_select'], [id='heading-_dragHandle']) {
+      width: var(--pt-util-col);
+      min-width: var(--pt-util-col);
+      max-width: var(--pt-util-col);
+    }
+
+    .collection-list:not(:has(.pt-media-toggle[data-view='grid'])) .table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+    }
+
+    /* the frozen cells: first cell, the cell after a utility column, and
+     * the cell after drag handle + select. `left` is set per case below,
+     * each rule more specific than the one before it. */
+    .collection-list:not(:has(.pt-media-toggle[data-view='grid'])) .table tr > :first-child,
+    .collection-list:not(:has(.pt-media-toggle[data-view='grid']))
+      .table
+      tr
+      > :is(.cell-_select, .cell-_dragHandle, [id='heading-_select'], [id='heading-_dragHandle'])
+      + * {
+      position: sticky;
+      z-index: 2;
+      left: 0;
+      /* opaque backing + the row's hover/selection tint repainted on top */
+      background: linear-gradient(var(--pt-row-wash, transparent), var(--pt-row-wash, transparent))
+        var(--theme-elevation-0);
+    }
+    .collection-list:not(:has(.pt-media-toggle[data-view='grid']))
+      .table
+      tr
+      > :is(.cell-_select, .cell-_dragHandle, [id='heading-_select'], [id='heading-_dragHandle'])
+      + * {
+      left: var(--pt-util-col);
+    }
+    .collection-list:not(:has(.pt-media-toggle[data-view='grid']))
+      .table
+      tr
+      > :is(.cell-_dragHandle, [id='heading-_dragHandle'])
+      + :is(.cell-_select, [id='heading-_select'])
+      + * {
+      left: calc(2 * var(--pt-util-col));
+    }
+    /* header cells that are also frozen sit above both scroll axes */
+    .collection-list:not(:has(.pt-media-toggle[data-view='grid'])) .table thead tr > :first-child,
+    .collection-list:not(:has(.pt-media-toggle[data-view='grid']))
+      .table
+      thead
+      tr
+      > :is([id='heading-_select'], [id='heading-_dragHandle'])
+      + * {
+      z-index: 4;
+      background: var(--theme-elevation-50);
+    }
+  }
+
+  /* A hairline marks the frozen column's edge — only once the table has
+   * actually scrolled sideways (scroll-state queries; browsers without
+   * them simply never show it). */
+  @supports (container-type: scroll-state) {
+    .collection-list .table {
+      container-type: scroll-state;
+    }
+    @container scroll-state(scrollable: left) {
+      .collection-list
+        .table
+        tr
+        > :is(.cell-_select, .cell-_dragHandle, [id='heading-_select'], [id='heading-_dragHandle'])
+        + :not(.cell-_select, [id='heading-_select']) {
+        box-shadow: inset -1px 0 0 var(--theme-border-color);
+      }
+    }
+  }
+}
+/* ==================================================================== *
+ * MISC — tabs, drawer/dialog, radio, links, loading
+ *
+ * The remaining accent touches. Semantic pills (success/warning/error)
+ * stay independent of the accent.
+ * ==================================================================== */
+@layer payload {
+  /* ---- document tabs: styled as a segmented control in the CONTROLS
+   * section; here only the neutral version-count badge remains ---- */
+  .pill-version-count {
+    background-color: var(--theme-elevation-100);
+    color: var(--theme-elevation-600);
+    border-radius: 999px;
+  }
+
+  /* ---- field tabs (`type: 'tabs'`): shadcn underline tabs. Payload
+   * renders h4-sized labels at half opacity over a near-black bar; here
+   * they are body-size muted labels, the active one in the text color over
+   * a 2px accent bar. ---- */
+  .tabs-field__tabs {
+    border-bottom-color: var(--theme-border-color);
+  }
+  .tabs-field__tab-button {
+    padding-bottom: 12px;
+    margin-inline-end: 24px;
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-base);
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0;
+    opacity: 1;
+    transition: color 0.15s ease;
+  }
+  .tabs-field__tab-button:hover {
+    color: var(--theme-text);
+  }
+  .tabs-field__tab-button::after {
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: var(--pt-accent);
+  }
+  .tabs-field__tab-button:hover::after {
+    opacity: 0;
+  }
+  .tabs-field__tab-button--active {
+    color: var(--theme-text);
+  }
+  .tabs-field__tab-button:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--pt-accent-ring) 45%, transparent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  /* the label color above out-ranks Payload's error tint — restate it */
+  .tabs-field__tab-button--has-error {
+    color: var(--theme-error-500);
+  }
+  .tabs-field__tab-button--has-error::after {
+    background: var(--theme-error-500);
+  }
+
+  /* ---- radio: shadcn RadioGroup — a 16px input-bordered ring with an
+   * accent dot. Payload marks the chosen option `--is-selected` and paints
+   * the dot as a ::before with a thick background-colored border. ---- */
+  .radio-input__styled-radio {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--pt-input-border);
+    border-radius: 50%;
+    background: var(--theme-input-bg);
+    box-shadow: var(--pt-shadow-xs);
+    transition:
+      border-color 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  .radio-input__styled-radio::before {
+    position: absolute;
+    inset: 3px;
+    width: auto;
+    height: auto;
+    border: 0;
+    background-color: var(--pt-accent);
+    transition: opacity 0.12s ease;
+  }
+  .radio-input:hover .radio-input__styled-radio {
+    border-color: var(--theme-elevation-400);
+  }
+  .radio-input--is-selected .radio-input__styled-radio,
+  .radio-input--is-selected:hover .radio-input__styled-radio {
+    border-color: var(--pt-accent);
+  }
+  /* Payload's focus is a green 3px glow — swap it for the input ring,
+   * keyboard focus only */
+  .radio-input input[type='radio']:focus + .radio-input__styled-radio {
+    box-shadow: var(--pt-shadow-xs);
+  }
+  .radio-input input[type='radio']:focus-visible + .radio-input__styled-radio {
+    border-color: var(--pt-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pt-accent-ring) 18%, transparent);
+  }
+  .radio-group--read-only .radio-input .radio-input__styled-radio {
+    border-color: var(--pt-input-border);
+  }
+  .radio-group--read-only .radio-input__styled-radio::before {
+    background-color: var(--theme-elevation-400);
+  }
+
+  /* ---- content links pick up the accent ---- */
+  .rich-text a,
+  .rich-text-lexical a {
+    color: var(--pt-accent);
+    text-decoration-color: color-mix(in srgb, var(--pt-accent) 40%, transparent);
+  }
+
+  /* ---- initial loading bars = accent ---- */
+  .loading-overlay__bars,
+  .loading-overlay__bar {
+    color: var(--pt-accent);
+  }
+
+  /* ---- drawer / dialog: shadcn sheet (radius, shadow, soft overlay) ---- */
+  .drawer__content {
+    border-start-start-radius: calc(var(--pt-radius-card) + 4px);
+    border-end-start-radius: calc(var(--pt-radius-card) + 4px);
+    box-shadow: -8px 0 40px rgb(0 0 0 / 0.18);
+  }
+  .drawer__blur-bg {
+    background: rgb(0 0 0 / 0.4);
+  }
+}
+/* ==================================================================== *
+ * CUSTOM NAV — replacement sidebar
+ *
+ * Styles for the custom Nav component at src/components/Nav, which
+ * REPLACES Payload's default nav via admin.components.Nav. The component
+ * keeps Payload's structural classes (.nav, .nav__scroll, .nav__wrap,
+ * .nav__controls) so geometry/open-close behavior is inherited, and
+ * renders its own pt-nav__* classes for the redesign.
+ *
+ * The sidebar is the shadcn "inset" sidebar: it sits DIRECTLY on the gray
+ * page background (no white panel, no divider), with compact rounded menu
+ * items, neutral hovers and an accent fill only for the active item. The
+ * solid --theme-bg background also serves the ≤1440px drawer, which needs
+ * an opaque panel.
+ * ==================================================================== */
+@layer payload {
+  .pt-nav {
+    /* The default nav reserves an app-header-sized dead zone at the top;
+     * our logo owns that space instead. Stock also pads ~40px under the
+     * user block — pull it down so the footer sits near the bottom edge. */
+    --nav-padding-block-start: 0px;
+    --nav-padding-block-end: 10px;
+    background: var(--theme-bg);
+    border-right: 0;
+  }
+
+  /* Sidebar column width + inner inset (reference: 16rem + p-2 gutters).
+   * Scoped to >768px so the mobile drawer keeps Payload's full-width
+   * (100vw) override. The layout grid reads the same variable, so the
+   * content well adjusts by itself. */
+  @media (min-width: 769px) {
+    :root {
+      --nav-width: 276px;
+    }
+  }
+  .pt-nav .nav__scroll {
+    --nav-padding-inline-start: 16px;
+    --nav-padding-inline-end: 16px;
+    /* The column itself never scrolls: logo + search stay pinned on top,
+     * the user block stays pinned at the bottom, and ONLY the menu block
+     * (.pt-nav__wrap) scrolls when the entities overflow. */
+    overflow: hidden;
+  }
+  .pt-nav__wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--theme-elevation-250) transparent;
+    /* breathing room so the last item never kisses the user block */
+    padding-bottom: 10px;
+  }
+  .pt-nav__controls {
+    flex: 0 0 auto;
+    margin-top: auto; /* pinned even when the menu is short */
+    padding-top: 8px;
+  }
+
+  /* ---- logo (Payload's own wordmark until a custom logo is provided) ---- */
+  .pt-nav__logo {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 20px 10px 0; /* the logo→search gap is set in the search-trigger section below */
+    text-decoration: none;
+  }
+  .pt-nav__logo:hover,
+  .pt-nav__logo:focus-visible {
+    text-decoration: none;
+  }
+  .pt-nav__logo .graphic-logo {
+    height: var(--pt-logo-height, 24px);
+    width: auto;
+  }
+  .pt-nav__logo-img {
+    height: var(--pt-logo-height, 24px);
+    width: auto;
+  }
+  /* light/dark logo pair: show only the variant matching the active scheme */
+  html[data-theme='dark'] .pt-nav__logo-img--light,
+  html:not([data-theme='dark']) .pt-nav__logo-img--dark {
+    display: none;
+  }
+
+  /* ---- groups ---- */
+  .pt-nav__wrap {
+    gap: 2px; /* space between stacked groups */
+  }
+  .pt-nav__group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+  }
+  /* shadcn group label: small, muted, sentence case — no shouting */
+  .pt-nav__group-label {
+    margin: 16px 0 4px;
+    padding: 0 10px;
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* ---- links (shadcn sidebar-menu-button) ---- */
+  .pt-nav__link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: var(--pt-radius-ctl);
+    color: var(--theme-elevation-600); /* muted inactive; icon inherits */
+    font-size: var(--pt-text-base);
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+  }
+  /* hover = the neutral sidebar-accent wash, not an accent tint */
+  a.pt-nav__link:hover,
+  a.pt-nav__link:focus-visible {
+    text-decoration: none;
+    color: var(--theme-text);
+    background: color-mix(in srgb, var(--theme-elevation-500) 12%, transparent);
+  }
+  /* active = accent fill (the sidebar-primary treatment) */
+  .pt-nav__link--active {
+    background: var(--pt-accent);
+    color: var(--pt-accent-contrast);
+    font-weight: 500;
+    box-shadow: var(--pt-shadow-xs);
+  }
+  a.pt-nav__link--active:hover,
+  a.pt-nav__link--active:focus-visible {
+    background: var(--pt-accent-hover);
+    color: var(--pt-accent-contrast);
+  }
+  .pt-nav__icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+  }
+  .pt-nav__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ---- bottom user block (shadcn sidebar footer, faithfully) --------------
+   * One full-width GHOST trigger (no border, no card chrome — it's a sidebar
+   * item, not a form control): accent initials avatar + name/email + up/down
+   * chevron. Hover/open = quiet neutral tint, exactly like shadcn's
+   * sidebar-accent. The popup above it follows shadcn's dropdown-menu
+   * anatomy: soft border, shadow-md, 4px padding, compact rows, full-bleed
+   * separators. */
+  .pt-nav__controls {
+    width: 100%;
+    padding-inline: 0;
+    padding-bottom: 4px;
+  }
+  .pt-nav__user {
+    position: relative;
+    width: 100%;
+  }
+  .pt-nav__user-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 8px;
+    background: transparent;
+    border: 0;
+    border-radius: var(--pt-radius-ctl);
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.12s ease;
+  }
+  .pt-nav__user-trigger:hover,
+  .pt-nav__user-trigger:focus-visible,
+  .pt-nav__user-trigger[aria-expanded='true'] {
+    background: color-mix(in srgb, var(--theme-elevation-500) 12%, transparent);
+  }
+  .pt-nav__user-trigger:focus-visible {
+    outline: 2px solid var(--pt-accent);
+    outline-offset: -2px;
+  }
+  /* Circle avatar in the accent — ALWAYS fully round, independent of the
+   * radius setting. Shared by the trigger and the menu header. */
+  .pt-nav__user-avatar {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: var(--pt-accent);
+    color: var(--pt-accent-contrast);
+    font-size: var(--pt-text-3xs);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  /* Photo/gravatar/custom-component avatars: no accent disc behind the
+   * artwork, and everything the source renders is clipped to the circle. */
+  .pt-nav__user-avatar--image {
+    background: none;
+    overflow: hidden;
+  }
+  .pt-nav__user-avatar--image > * {
+    width: 100%;
+    height: 100%;
+  }
+  .pt-nav__user-avatar--image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    object-fit: cover;
+  }
+  .pt-nav__user-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    line-height: 1.25;
+  }
+  .pt-nav__user-name {
+    font-size: var(--pt-text-base);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    color: var(--theme-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pt-nav__user-email {
+    font-size: var(--pt-text-xs);
+    color: var(--theme-elevation-500);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pt-nav__user-chevron {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: var(--theme-elevation-500);
+  }
+
+  /* ---- the popup menu (shadcn dropdown-menu), opening upward ---- */
+  .pt-nav__user-menu {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    padding: 4px;
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-md);
+  }
+  html[data-theme='dark'] .pt-nav__user-menu {
+    background: var(--theme-elevation-50);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .pt-nav__user-menu {
+      animation: pt-user-menu-in 0.13s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+  }
+  @keyframes pt-user-menu-in {
+    from {
+      opacity: 0;
+      transform: translateY(3px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .pt-nav__user-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+  }
+  /* full-bleed hairline between menu groups (mirrors the shadcn menu) */
+  .pt-nav__user-menu-sep {
+    height: 1px;
+    margin: 4px -4px;
+    background: var(--theme-elevation-100);
+  }
+  .pt-nav__user-menu-label {
+    padding: 6px 8px 2px;
+    font-size: var(--pt-text-3xs);
+    font-weight: 500;
+    color: var(--theme-elevation-500);
+  }
+  .pt-nav__user-menu-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 0;
+    background: none;
+    border-radius: var(--pt-radius-item);
+    font-size: var(--pt-text-base);
+    font-weight: 450;
+    color: var(--theme-text);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color 0.1s ease,
+      color 0.1s ease;
+
+    svg {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      color: var(--theme-elevation-500);
+    }
+  }
+  .pt-nav__user-menu-item:hover,
+  .pt-nav__user-menu-item:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+    color: var(--theme-text);
+    text-decoration: none;
+  }
+  .pt-nav__user-menu-item:focus-visible {
+    outline: none;
+  }
+  /* active locale: checked, not clickable */
+  .pt-nav__user-menu-item:disabled {
+    cursor: default;
+    color: var(--theme-text);
+  }
+  .pt-nav__user-menu-item:disabled:hover {
+    background: none;
+  }
+  .pt-nav__user-menu-check {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+
+    svg {
+      width: 14px;
+      height: 14px;
+      color: var(--pt-accent);
+    }
+  }
+  .pt-nav__user-menu-item--logout:hover,
+  .pt-nav__user-menu-item--logout:focus-visible {
+    background: color-mix(in srgb, var(--theme-error-500) 12%, transparent);
+    color: var(--theme-error-600);
+
+    svg {
+      color: var(--theme-error-600);
+    }
+  }
+}
+/* ==================================================================== *
+ * LAYOUT FRAME — the inset content card (the reference's signature)
+ *
+ * The whole page is the gray field (--theme-bg on .template-default, which
+ * Payload paints by default). The sidebar sits directly on it. EVERYTHING
+ * else — header + views — lives in ONE white card: rounded, bordered,
+ * shadow-sm, floating with an 8px gutter (flush only toward the sidebar,
+ * whose own padding provides that gap — exactly the reference's
+ * `m-2 ml-0` inset). The app header is sticky and translucent inside the
+ * card, with the breadcrumb restored as its content.
+ *
+ * Every frame dimension reads a --pt-frame-* token (the inset values are
+ * the fallbacks), so `frame: 'flat'` only swaps tokens: no gutter, no
+ * radius, no shadow, and a single divider on the sidebar's edge instead.
+ * ==================================================================== */
+@layer payload {
+  /* 1) Hide Payload's own desktop nav toggler: it renders OUTSIDE the
+   *    content card, so it can never line up with the header row. The
+   *    theme ships its own collapse chip INSIDE the app header instead
+   *    (HeaderActions → .pt-nav-collapse, pinned to the header's left).
+   *    Mobile keeps its drawer toggler (.app-header__mobile-nav-toggler). */
+  .template-default__nav-toggler-wrapper {
+    display: none;
+  }
+  /* the collapse/expand itself animates the grid track */
+  @media (min-width: 1441px) and (prefers-reduced-motion: no-preference) {
+    .template-default--nav-animate {
+      transition: grid-template-columns 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+  }
+
+  /* 2) The content card. Inside it, --theme-bg is remapped to the card
+   *    surface so every Payload gradient/shim that fades "to the page
+   *    background" (doc-controls overflow fades, step-nav fade, …) resolves
+   *    to WHITE here, while the page outside stays gray. */
+  .template-default__wrap {
+    --theme-bg: var(--theme-elevation-0);
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    background: var(--theme-elevation-0);
+  }
+  .template-default__wrap > * {
+    flex: 0 0 auto;
+  }
+
+  @media (min-width: 769px) {
+    .template-default__wrap {
+      margin-block: var(--pt-frame-inset, 8px);
+      margin-inline: 0 var(--pt-frame-inset, 8px);
+      /* Payload sizes the wrap at width:100% of its grid track — with the
+       * side margins that overflows by exactly the gutter, eating the right
+       * inset. `auto` lets the stretched grid item shrink to track minus
+       * margins, so left and right insets match. */
+      width: auto;
+      min-height: calc(100dvh - 2 * var(--pt-frame-inset, 8px));
+      border: var(--pt-frame-border, 1px) solid var(--theme-border-color);
+      border-radius: var(--pt-frame-radius, var(--pt-radius-card));
+      box-shadow: var(--pt-frame-shadow, var(--pt-shadow-sm));
+    }
+    /* drawer mode / closed nav: no sidebar gutter on the left — add our own */
+    .template-default:not(.template-default--nav-open) .template-default__wrap {
+      margin-inline-start: var(--pt-frame-inset, 8px);
+    }
+  }
+  /* flat frame: the content meets the docked sidebar along one hairline
+   * (≤1440px the sidebar is an overlay drawer, so there is no seam) */
+  @media (min-width: 1441px) {
+    .template-default--nav-open .template-default__wrap {
+      border-inline-start-width: 1px;
+    }
+  }
+
+  /* 3) Sticky translucent header (h-14, border-b, backdrop blur), top
+   *    corners rounded to match the card it caps. */
+  .app-header {
+    position: sticky;
+    top: 0;
+    background: color-mix(in srgb, var(--theme-elevation-0) 72%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--theme-elevation-100);
+  }
+  @media (min-width: 769px) {
+    .app-header {
+      border-start-start-radius: max(
+        0px,
+        calc(var(--pt-frame-radius, var(--pt-radius-card)) - 1px)
+      );
+      border-start-end-radius: max(0px, calc(var(--pt-frame-radius, var(--pt-radius-card)) - 1px));
+    }
+  }
+  .app-header__bg {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* 4) No breadcrumbs, no Payload mark — the header carries only the right
+   *    side actions (theme customizer, light/dark toggle, user menu) plus
+   *    the mobile hamburger. */
+  .app-header__step-nav-wrapper {
+    display: none;
+  }
+
+  /* 5) Payload's own account button and content-locale switcher stay hidden:
+   *    both features live in the theme's user menus (sidebar + header). */
+  .app-header__account,
+  .app-header__localizer,
+  .app-header__localizer-spacing {
+    display: none;
+  }
+  .app-header__actions-wrapper {
+    margin-left: auto;
+    margin-right: 0;
+  }
+  .app-header__actions {
+    max-width: none;
+    overflow: visible;
+  }
+  /* flush to the right edge: the content strip keeps its wide reading
+   * gutter only on the start side; actions hug the card's right corner */
+  .app-header__content {
+    padding-inline-end: 20px;
+  }
+  .app-header__last-action {
+    margin-right: 0;
+  }
+  /* the fade shim next to the actions reads as a smudge on the clean header */
+  .app-header__gradient-placeholder {
+    display: none;
+  }
+
+  /* 6) Views stretch the card to the bottom edge; a little air above and
+   *    below the content. (No gray well anymore — the card IS the surface.) */
+  .template-default__wrap > .app-header + [class] {
+    padding-block-start: var(--pt-section-gap, 24px);
+  }
+  .template-default__wrap > [class]:not(.app-header):not(.doc-header) {
+    flex: 1 0 auto;
+    padding-block-end: var(--pt-section-gap, 24px);
+  }
+
+  /* 7) Payload wraps the account/auth fields (email, password buttons) in an
+   *    elevation-50 card with 40px padding — on the white card that reads as
+   *    a random gray slab. Flatten it so auth fields align with everything
+   *    else. */
+  .auth-fields {
+    padding: 0;
+    background: transparent;
+    border: 0;
+  }
+}
+/* ==================================================================== *
+ * DASHBOARD — widget grid
+ *
+ * The custom Dashboard view renders an ordered list of widgets into one
+ * responsive grid: one card per visible collection (icon chip + plural
+ * label + large doc count + '+' quick action) and per global. Cards are
+ * white shadcn cards (border + xs shadow) on the content surface; hover
+ * is a neutral border/shadow lift. All colours come from tokens so
+ * light/dark both just work.
+ * ==================================================================== */
+@layer payload {
+  /* Card grid and widget area stack in a flex column so the widgets' `order`
+   * can move them above the cards. Position is the `widgets` surface option:
+   * the grid keeps order 0, the widgets read --pt-widgets-order (fallback 1 =
+   * below; the option emits -1 for 'top'). Pure CSS, so the header
+   * customizer's pre-paint replay can flip it with no server round trip. */
+  .pt-dash {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .pt-dash__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    /* every card ends up the exact same size — rows share the tallest
+     * card's height, and a minimum keeps sparse cards from squatting */
+    grid-auto-rows: 1fr;
+    gap: 16px;
+  }
+  .pt-dash__cell {
+    min-height: 148px;
+  }
+
+  .pt-dash__cell {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .pt-dash__cell--full {
+    grid-column: 1 / -1;
+  }
+
+  /* -- entity cards (shadcn stat-card anatomy) ------------------------------
+   * Head row: accent icon chip + label side by side. Body: big count + muted
+   * caption. In dark mode the card lifts to elevation-50 (the content
+   * surface and elevation-0 are the same near-black, which made cards read
+   * muddy). Hover: a soft 2px lift with a deeper shadow — enough motion to
+   * feel alive, gated behind prefers-reduced-motion. */
+  .pt-dash__card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    flex: 1 1 auto;
+    padding: 18px 18px 16px;
+    background-color: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-xs);
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease,
+      transform 0.15s ease;
+  }
+  html[data-theme='dark'] .pt-dash__card {
+    background-color: var(--theme-elevation-50);
+  }
+  .pt-dash__card:hover {
+    border-color: var(--theme-elevation-300);
+    box-shadow: var(--pt-shadow-md);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .pt-dash__card:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  /* head row: muted label LEFT, round neutral icon chip RIGHT — the
+   * reference stat-card grammar */
+  .pt-dash__card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+  }
+  .pt-dash__card-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    background: var(--theme-elevation-100);
+    color: var(--theme-elevation-600);
+
+    svg {
+      width: 17px;
+      height: 17px;
+    }
+  }
+  .pt-dash__card-label {
+    font-size: var(--pt-text-xs);
+    font-weight: 500;
+    color: var(--theme-elevation-500);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pt-dash__card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .pt-dash__card-count-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+  }
+  .pt-dash__card-count {
+    font-size: var(--pt-text-3xl);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    color: var(--theme-text);
+  }
+
+  /* 30-day trend chip next to the count — quiet rounded pill, softly tinted
+   * by direction (success up / error down / neutral flat and "New"). Always-
+   * round like every status badge in the theme. */
+  .pt-dash__card-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: var(--pt-text-xs);
+    font-weight: 550;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+    background: var(--theme-elevation-100);
+    color: var(--theme-elevation-600);
+    transform: translateY(-3px); /* optically centers against the big count */
+
+    svg {
+      width: 12px;
+      height: 12px;
+    }
+  }
+  .pt-dash__card-delta[data-trend='up'] {
+    background: color-mix(in srgb, var(--theme-success-500) 12%, transparent);
+    color: var(--theme-success-600);
+  }
+  .pt-dash__card-delta[data-trend='down'] {
+    background: color-mix(in srgb, var(--theme-error-500) 10%, transparent);
+    color: var(--theme-error-600);
+  }
+  html[data-theme='dark'] .pt-dash__card-delta[data-trend='up'] {
+    color: var(--theme-success-400);
+  }
+  html[data-theme='dark'] .pt-dash__card-delta[data-trend='down'] {
+    color: var(--theme-error-400);
+  }
+  .pt-dash__card-caption {
+    font-size: var(--pt-text-2xs);
+    font-weight: 450;
+    color: var(--theme-elevation-500);
+  }
+  /* sparkline strip pinned to the bottom of stat cards (cards share one
+   * height, so the strip anchors to the bottom edge on every card) */
+  .pt-dash__spark {
+    display: block;
+    width: 100%;
+    height: 34px;
+    margin-top: auto;
+    color: var(--pt-accent);
+  }
+  /* Globals have no count — the entity name itself is the big line. */
+  .pt-dash__card-title {
+    font-size: var(--pt-text-xl);
+    font-weight: 650;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    color: var(--theme-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Stretched link: makes the whole card clickable without nesting anchors. */
+  .pt-dash__card-link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: var(--pt-radius-card);
+  }
+  .pt-dash__card-link:focus-visible {
+    outline: 2px solid var(--pt-accent);
+    outline-offset: 2px;
+  }
+
+  /* '+' quick action sits above the stretched link, exactly covering the
+   * icon chip — invisible at rest, it fades in over the icon on hover so the
+   * resting card matches the reference stat-card exactly. */
+  .pt-dash__card-create {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    background: var(--pt-accent);
+    color: var(--pt-accent-contrast);
+    opacity: 0;
+    transition:
+      opacity 0.15s ease,
+      background-color 0.15s ease;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+  .pt-dash__card:hover .pt-dash__card-create,
+  .pt-dash__card-create:focus-visible {
+    opacity: 1;
+  }
+  .pt-dash__card-create:hover {
+    background: var(--pt-accent-hover);
+  }
+  .pt-dash__card-create:focus-visible {
+    outline: 2px solid var(--pt-accent);
+    outline-offset: 2px;
+  }
+
+  /* -- custom widget area (plugin option `dashboard.widgets`) ---------------
+   * A 12-column grid below the built-in dashboard content (or above it,
+   * see --pt-widgets-order). Each widget cell
+   * is a plain container (no card chrome forced on it) so a widget can be a
+   * card, a table, a chart — whatever the developer renders. Width comes
+   * from the config: full = 12, half = 6, third = 4 columns; everything
+   * stacks on narrow viewports. Empty list → the block isn't rendered at
+   * all, so a widget-less dashboard is byte-identical to before. */
+  .pt-dash__widgets {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 16px;
+    order: var(--pt-widgets-order, 1);
+  }
+  .pt-dash__widget {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    grid-column: span 6;
+  }
+  .pt-dash__widget--full {
+    grid-column: 1 / -1;
+  }
+  .pt-dash__widget--third {
+    grid-column: span 4;
+  }
+  @media (max-width: 1024px) {
+    .pt-dash__widget,
+    .pt-dash__widget--third {
+      grid-column: span 6;
+    }
+  }
+  @media (max-width: 768px) {
+    .pt-dash__widget,
+    .pt-dash__widget--third {
+      grid-column: 1 / -1;
+    }
+  }
+}
+/* ==================================================================== *
+ * HEADER ACTIONS — theme customizer, light/dark toggle, user menu
+ *
+ * Rendered by the HeaderActions component through `admin.components.actions`
+ * into the app header's right side. The customizer panel and the user menu
+ * are absolutely-positioned popovers dropping below the header.
+ * ==================================================================== */
+@layer payload {
+  .pt-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ---- quiet 34px ghost icon buttons (palette, sun/moon) ---- */
+  .pt-header-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: var(--pt-radius-ctl);
+    color: var(--theme-elevation-600);
+    cursor: pointer;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+
+    svg {
+      width: 17px;
+      height: 17px;
+    }
+  }
+  .pt-header-btn:hover,
+  .pt-header-btn:focus-visible,
+  .pt-header-btn[aria-expanded='true'] {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+    color: var(--theme-text);
+  }
+  .pt-header-btn:focus-visible {
+    outline: none;
+  }
+
+  /* ---- desktop sidebar collapse chip ----
+   * Rendered inside .pt-header-actions (right side) but pinned to the
+   * header row's LEFT edge — same row as the other chips, so it stays
+   * vertically aligned with them in every scroll state. The open chip
+   * shows aria-expanded styling like any popover trigger; suppress it. */
+  .pt-nav-collapse {
+    position: absolute;
+    inset-inline-start: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  /* Payload's actions wrapper is position:relative and would trap the
+   * absolutely-positioned chip on the right — release it so the chip
+   * anchors to the full-width .app-header__content row instead. */
+  .app-header__actions-wrapper {
+    position: static;
+  }
+  .pt-nav-collapse[aria-expanded='true']:not(:hover):not(:focus-visible) {
+    background: transparent;
+    color: var(--theme-elevation-600);
+  }
+  .pt-nav-collapse:active {
+    transform: translateY(calc(-50% + 1px));
+  }
+  @media (max-width: 1440px) {
+    .pt-nav-collapse {
+      display: none; /* the mobile drawer brings its own toggler */
+    }
+  }
+
+  /* ---- customizer popover ---- */
+  .pt-custom {
+    position: relative;
+  }
+  .pt-custom__panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    inset-inline-end: 0;
+    z-index: 80;
+    width: min(308px, calc(100vw - 32px));
+    max-height: calc(100vh - var(--app-header-height, 64px) - 32px);
+    /* dvh: on phones 100vh includes the hidden browser chrome, which pushed
+     * the panel's bottom (footer buttons) off-screen */
+    max-height: calc(100dvh - var(--app-header-height, 64px) - 32px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px;
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-lg);
+    white-space: normal;
+  }
+  html[data-theme='dark'] .pt-custom__panel {
+    background: var(--theme-elevation-50);
+  }
+  /* Phones: the palette button is not the header's last chip (sun/moon and
+   * the avatar sit to its right), so a panel right-aligned to the button ran
+   * off the screen's LEFT edge. Release the button's positioning and span
+   * the panel across the header row instead, a 12px gutter each side. */
+  @media (max-width: 768px) {
+    .pt-custom {
+      position: static;
+    }
+    .pt-custom__panel {
+      top: calc(100% + 6px);
+      inset-inline: 12px;
+      width: auto;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .pt-custom__panel {
+      animation: pt-user-menu-in 0.13s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+  }
+
+  .pt-custom__section {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .pt-custom__label {
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+    color: var(--theme-elevation-500);
+  }
+
+  /* preset tiles: one-click full themes (accent + radius + font) — a
+   * 3-per-row grid of quiet chips, each led by its accent dot; the active
+   * preset gets an accent ring like the swatches */
+  .pt-custom__presets {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .pt-custom__preset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 6px;
+    background: var(--theme-elevation-50);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-item);
+    color: var(--theme-elevation-600);
+    font-size: var(--pt-text-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color 0.12s ease,
+      border-color 0.12s ease,
+      color 0.12s ease;
+  }
+  html[data-theme='dark'] .pt-custom__preset {
+    background: var(--theme-elevation-100);
+  }
+  .pt-custom__preset:hover {
+    background: var(--theme-elevation-100);
+    color: var(--theme-text);
+  }
+  html[data-theme='dark'] .pt-custom__preset:hover {
+    background: var(--theme-elevation-150);
+  }
+  .pt-custom__preset--active,
+  .pt-custom__preset--active:hover {
+    border-color: var(--pt-accent);
+    background: color-mix(in srgb, var(--pt-accent) 8%, transparent);
+    color: var(--theme-text);
+  }
+  .pt-custom__preset-dot {
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  }
+  html[data-theme='dark'] .pt-custom__preset-dot {
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+  }
+
+  /* font tiles: each label renders in its own typeface — the button IS the
+   * preview */
+  .pt-custom__fonts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .pt-custom__font {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 6px;
+    background: var(--theme-elevation-50);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-item);
+    color: var(--theme-elevation-600);
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color 0.12s ease,
+      border-color 0.12s ease,
+      color 0.12s ease;
+  }
+  html[data-theme='dark'] .pt-custom__font {
+    background: var(--theme-elevation-100);
+  }
+  .pt-custom__font:hover {
+    background: var(--theme-elevation-100);
+    color: var(--theme-text);
+  }
+  html[data-theme='dark'] .pt-custom__font:hover {
+    background: var(--theme-elevation-150);
+  }
+  .pt-custom__font--active,
+  .pt-custom__font--active:hover {
+    border-color: var(--pt-accent);
+    background: color-mix(in srgb, var(--pt-accent) 8%, transparent);
+    color: var(--theme-text);
+  }
+
+  /* accent swatches: a tidy 5-per-row grid of rounded color tiles; the
+   * active tile carries a white check and a ring in its own color (picking
+   * it makes that color THE accent, so the ring self-updates) */
+  .pt-custom__swatches {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .pt-custom__swatch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.1);
+    transition:
+      transform 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  html[data-theme='dark'] .pt-custom__swatch {
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+  }
+  .pt-custom__swatch:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 0 0 1px rgb(0 0 0 / 0.1),
+      0 2px 6px rgb(0 0 0 / 0.18);
+  }
+  .pt-custom__swatch--active,
+  .pt-custom__swatch--active:hover {
+    transform: none;
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.2),
+      0 0 0 2px var(--theme-elevation-0),
+      0 0 0 4px var(--pt-accent);
+  }
+  html[data-theme='dark'] .pt-custom__swatch--active,
+  html[data-theme='dark'] .pt-custom__swatch--active:hover {
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.2),
+      0 0 0 2px var(--theme-elevation-50),
+      0 0 0 4px var(--pt-accent);
+  }
+  /* white check on the active tile */
+  .pt-custom__swatch--active::after {
+    content: '';
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.35));
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+
+  /* custom hex: ONE field — a live color dot inside the input box */
+  .pt-custom__hex {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    height: 34px;
+    padding: 0 11px;
+    background: var(--theme-input-bg);
+    border: 1px solid var(--pt-input-border);
+    border-radius: 8px;
+    transition:
+      border-color 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  .pt-custom__hex:focus-within {
+    border-color: var(--pt-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pt-accent-ring) 18%, transparent);
+  }
+  .pt-custom__hex-preview {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  }
+  html[data-theme='dark'] .pt-custom__hex-preview {
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+  }
+  .pt-custom__hex-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    outline: none;
+    box-shadow: none;
+    color: var(--theme-text);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: var(--pt-text-sm);
+    letter-spacing: 0.02em;
+  }
+  .pt-custom__hex-input::placeholder {
+    color: var(--theme-elevation-400);
+  }
+  .pt-custom__hex-input:focus,
+  .pt-custom__hex-input:focus-visible {
+    outline: none;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* segmented rows (radius / color mode / layout) — the shadcn Tabs track */
+  .pt-custom__segments {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    padding: 3px;
+    background: var(--theme-elevation-100);
+    border-radius: var(--pt-radius-ctl);
+  }
+  html[data-theme='dark'] .pt-custom__segments {
+    background: var(--theme-elevation-100);
+  }
+  .pt-custom__segment {
+    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 4px;
+    border: 0;
+    background: transparent;
+    border-radius: calc(var(--pt-radius-ctl) - 2px);
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-xs);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+
+    svg {
+      width: 13px;
+      height: 13px;
+    }
+  }
+  .pt-custom__segment:hover {
+    color: var(--theme-text);
+  }
+  .pt-custom__segment--active {
+    background: var(--theme-elevation-0);
+    color: var(--theme-text);
+    box-shadow: var(--pt-shadow-xs);
+  }
+  html[data-theme='dark'] .pt-custom__segment--active {
+    background: var(--theme-elevation-200);
+  }
+
+  /* footer: Copy config (outline) + Reset (solid) side by side */
+  .pt-custom__footer {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* copy: outline twin of the reset button; flips to a check when copied */
+  .pt-custom__copy {
+    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-ctl);
+    background: transparent;
+    color: var(--theme-text);
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color 0.12s ease,
+      border-color 0.12s ease,
+      color 0.12s ease;
+
+    svg {
+      width: 13px;
+      height: 13px;
+    }
+  }
+  .pt-custom__copy:hover {
+    background: color-mix(in srgb, var(--theme-elevation-500) 8%, transparent);
+  }
+  .pt-custom__copy--done,
+  .pt-custom__copy--done:hover {
+    border-color: var(--pt-accent);
+    color: var(--pt-accent);
+    background: color-mix(in srgb, var(--pt-accent) 8%, transparent);
+  }
+
+  /* reset: the one solid (auto-inverting) action in the panel */
+  .pt-custom__reset {
+    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: var(--pt-radius-ctl);
+    background: var(--theme-elevation-1000);
+    color: var(--theme-elevation-0);
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.12s ease;
+
+    svg {
+      width: 13px;
+      height: 13px;
+    }
+  }
+  .pt-custom__reset:hover {
+    opacity: 0.85;
+  }
+
+  /* ---- header user chip + downward menu (mirrors the sidebar block) ---- */
+  .pt-header-user {
+    position: relative;
+    margin-inline-start: 2px;
+  }
+  .pt-header-user-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px 4px 4px;
+    background: transparent;
+    border: 0;
+    border-radius: var(--pt-radius-ctl);
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.12s ease;
+  }
+  .pt-header-user-trigger:hover,
+  .pt-header-user-trigger:focus-visible,
+  .pt-header-user-trigger[aria-expanded='true'] {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+  }
+  .pt-header-user-trigger:focus-visible {
+    outline: none;
+  }
+  .pt-header-user-avatar {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px; /* always a circle, radius-agnostic */
+    background: var(--pt-accent);
+    color: var(--pt-accent-contrast);
+    font-size: var(--pt-text-3xs);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  /* Same treatment as the sidebar block when the avatar is real artwork. */
+  .pt-header-user-avatar--image {
+    background: none;
+    overflow: hidden;
+  }
+  .pt-header-user-avatar--image > * {
+    width: 100%;
+    height: 100%;
+  }
+  .pt-header-user-avatar--image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    object-fit: cover;
+  }
+  .pt-header-user-info {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+  .pt-header-user-name {
+    font-size: var(--pt-text-base);
+    font-weight: 550;
+    color: var(--theme-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+  }
+  /* email only in the dropdown, not in the compact chip */
+  .pt-header-user-trigger .pt-header-user-email {
+    display: none;
+  }
+  .pt-header-user-chevron {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    color: var(--theme-elevation-500);
+  }
+  /* tight screens: avatar-only chip */
+  @media (max-width: 900px) {
+    .pt-header-user-trigger .pt-header-user-info,
+    .pt-header-user-trigger .pt-header-user-chevron {
+      display: none;
+    }
+  }
+
+  .pt-header-user-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    inset-inline-end: 0;
+    z-index: 80;
+    width: 236px;
+    padding: 4px;
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-md);
+    white-space: normal;
+  }
+  html[data-theme='dark'] .pt-header-user-menu {
+    background: var(--theme-elevation-50);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .pt-header-user-menu {
+      animation: pt-user-menu-in 0.13s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+  }
+  .pt-header-user-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+  }
+  .pt-header-user-menu .pt-header-user-name {
+    max-width: none;
+  }
+  .pt-header-user-email {
+    font-size: var(--pt-text-xs);
+    color: var(--theme-elevation-500);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pt-header-user-menu-sep {
+    height: 1px;
+    margin: 4px -4px;
+    background: var(--theme-elevation-100);
+  }
+  .pt-header-user-menu-label {
+    padding: 6px 8px 2px;
+    font-size: var(--pt-text-3xs);
+    font-weight: 500;
+    color: var(--theme-elevation-500);
+  }
+  .pt-header-user-menu-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 0;
+    background: none;
+    border-radius: var(--pt-radius-item);
+    font-size: var(--pt-text-base);
+    font-weight: 450;
+    color: var(--theme-text);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color 0.1s ease,
+      color 0.1s ease;
+
+    svg {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      color: var(--theme-elevation-500);
+    }
+  }
+  .pt-header-user-menu-item:hover,
+  .pt-header-user-menu-item:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+    color: var(--theme-text);
+    text-decoration: none;
+  }
+  .pt-header-user-menu-item:focus-visible {
+    outline: none;
+  }
+  .pt-header-user-menu-item:disabled {
+    cursor: default;
+    color: var(--theme-text);
+  }
+  .pt-header-user-menu-item:disabled:hover {
+    background: none;
+  }
+  .pt-header-user-menu-check {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+
+    svg {
+      width: 14px;
+      height: 14px;
+      color: var(--pt-accent);
+    }
+  }
+  .pt-header-user-menu-item--logout:hover,
+  .pt-header-user-menu-item--logout:focus-visible {
+    background: color-mix(in srgb, var(--theme-error-500) 12%, transparent);
+    color: var(--theme-error-600);
+
+    svg {
+      color: var(--theme-error-600);
+    }
+  }
+}
+@layer payload {
+  /*
+   * The content-locale rows inside the user menu, for BOTH placements — the
+   * sidebar block (`pt-nav__user-*`) and the header chip (`pt-header-user-*`).
+   *
+   * Shared file rather than a duplicated block in nav.css and
+   * header-actions.css: the row is one component that happens to render under
+   * two class prefixes, and its geometry has to stay in sync or the flag sits
+   * at a different height in the two menus.
+   *
+   * Loaded after both of those modules so it lands last in the same layer.
+   */
+
+  /* The row carries a flag AND a code, so it runs tighter than the plain
+   * icon+label rows above it — 10px between four things reads as a list of
+   * unrelated items. */
+  .pt-nav__user-menu-item--locale,
+  .pt-header-user-menu-item--locale {
+    gap: 8px;
+  }
+
+  /* Label + code travel together, so a long locale name truncates as one unit
+   * instead of orphaning the "(xx)" on its own line. */
+  .pt-nav__user-menu-locale,
+  .pt-header-user-menu-locale {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* A long locale label ("Português (Brasil)") would otherwise push the code
+   * past the sidebar's edge; the NAME truncates and the code always survives,
+   * since the code is the half that disambiguates. */
+  .pt-nav__user-menu-name,
+  .pt-header-user-menu-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .pt-nav__user-menu-code,
+  .pt-header-user-menu-code {
+    flex-shrink: 0;
+    font-size: var(--pt-text-3xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--theme-elevation-500);
+  }
+
+  /* The active row is `disabled`, which browsers grey out; the code is already
+   * secondary text and would fade to nothing on top of that. */
+  .pt-nav__user-menu-item:disabled .pt-nav__user-menu-code,
+  .pt-header-user-menu-item:disabled .pt-header-user-menu-code {
+    color: var(--theme-elevation-600);
+  }
+
+  /* Overrides the menu's blanket `svg { width: 16px; height: 16px }` — a flag
+   * is 4:3, not square, and gets its ring colour from `currentColor`. */
+  .pt-nav__user-menu-item .pt-flag,
+  .pt-header-user-menu-item .pt-flag {
+    flex-shrink: 0;
+    display: block;
+    width: 20px;
+    height: 15px;
+    color: var(--theme-elevation-1000);
+  }
+}
+/* ==================================================================== *
+ * ACTION ICONS — every primary action button gets its glyph
+ *
+ * Payload's action buttons render text-only. Each known action gets a
+ * lucide glyph drawn as a currentColor mask, so it recolors with the
+ * button in every state and theme. Pure CSS — markup untouched.
+ * ==================================================================== */
+@layer payload {
+  /* the icon chip itself */
+  .list-create-new-doc__create-new-button .btn__content::before,
+  .list-header__title-actions .btn[aria-label='Bulk Upload'] .btn__content::before,
+  #action-save .btn__content::before,
+  #action-save-draft .btn__content::before,
+  #action-create::before,
+  #action-duplicate::before,
+  #action-delete::before,
+  #action-unpublish::before,
+  #toggle-list-columns::before,
+  #toggle-list-filters::before {
+    content: '';
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    background: currentColor;
+    -webkit-mask: var(--pt-ico) center / contain no-repeat;
+    mask: var(--pt-ico) center / contain no-repeat;
+  }
+
+  /* buttons: make the content row flex so the glyph sits beside the label */
+  .list-create-new-doc__create-new-button .btn__content,
+  .list-header__title-actions .btn[aria-label='Bulk Upload'] .btn__content,
+  #action-save .btn__content,
+  #action-save-draft .btn__content {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  /* popup rows are anchors/buttons — give them the same row anatomy */
+  #action-create,
+  #action-duplicate,
+  #action-delete,
+  #action-unpublish {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  /* pills: glyph leads the label */
+  #toggle-list-columns,
+  #toggle-list-filters {
+    gap: 6px;
+  }
+  #toggle-list-columns::before,
+  #toggle-list-filters::before {
+    width: 13px;
+    height: 13px;
+  }
+
+  /* the glyphs (lucide, stroke 2) */
+  .list-create-new-doc__create-new-button .btn__content,
+  #action-create {
+    --pt-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='M12 5v14'/%3E%3C/svg%3E");
+  }
+  .list-header__title-actions .btn[aria-label='Bulk Upload'] .btn__content {
+    --pt-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v12'/%3E%3Cpath d='m17 8-5-5-5 5'/%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3C/svg%3E");
+  }
+  #action-save .btn__content {
+    --pt-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  }
+  #action-save-draft .btn__content {
+    --pt-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z'/%3E%3Cpath d='M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7'/%3E%3Cpath d='M7 3v4a1 1 0 0 0 1 1h7'/%3E%3C/svg%3E");
+  }
+  #action-duplicate {
+    --pt-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='14' height='14' x='8' y='8' rx='2' ry='2'/%3E%3Cpath d='M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2'/%3E%3C/svg%3E");
+  }
+  #action-delete {
+    --pt-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6'/%3E%3Cpath d='M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2'/%3E%3Cpath d='M10 11v6'/%3E%3Cpath d='M14 11v6'/%3E%3C/svg%3E");
+  }
+  #action-unpublish {
+    --pt-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='20' height='5' x='2' y='3' rx='1'/%3E%3Cpath d='M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8'/%3E%3Cpath d='M10 12h4'/%3E%3C/svg%3E");
+  }
+  #toggle-list-columns {
+    --pt-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='3' rx='2'/%3E%3Cpath d='M9 3v18'/%3E%3Cpath d='M15 3v18'/%3E%3C/svg%3E");
+  }
+  #toggle-list-filters {
+    --pt-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6h18'/%3E%3Cpath d='M7 12h10'/%3E%3Cpath d='M10 18h4'/%3E%3C/svg%3E");
+  }
+
+  /* destructive rows read as destructive on hover */
+  #action-delete:hover,
+  #action-delete:focus-visible {
+    background: color-mix(in srgb, var(--theme-error-500) 12%, transparent);
+    color: var(--theme-error-600);
+  }
+}
+
+/* ==================================================================== *
+ * CONTROLS — list toolbar, pills, doc tabs, add buttons
+ *
+ * The list search bar + its Columns/Filters toggles, generic pills, the
+ * Edit/API doc tabs (a shadcn segmented control), the relationship "+"
+ * and array/blocks add-row buttons. Pure CSS — markup and behavior
+ * untouched.
+ * ==================================================================== */
+@layer payload {
+  /* ---- list search bar: same language as inputs (border + ring).
+   * The ring moves to the container; the inner input must stay borderless
+   * in every state or it would double up with the FORMS focus rule. */
+  .search-bar {
+    background: var(--theme-input-bg);
+    border: 1px solid var(--pt-input-border);
+    border-radius: var(--pt-radius-ctl);
+    box-shadow: var(--pt-shadow-xs);
+    transition:
+      border-color 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  .search-bar:focus-within {
+    border-color: var(--pt-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pt-accent-ring) 18%, transparent);
+  }
+  .search-bar .search-filter__input,
+  .search-bar .search-filter__input:focus,
+  .search-bar .search-filter__input:focus-visible {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* ---- pills (Columns/Filters toggles, column-selector chips, …) ----
+   * light = quiet outline chip with a neutral hover; dark (= selected/
+   * active) = accent chip. */
+  .pill {
+    border-radius: var(--pt-radius-ctl);
+  }
+  .pill--size-small {
+    padding: 0 10px;
+  }
+  .pill--style-light {
+    background: var(--theme-input-bg);
+    border: 1px solid var(--theme-border-color);
+    color: var(--theme-elevation-600);
+  }
+  .pill--style-light.pill--has-action:hover {
+    background: color-mix(in srgb, var(--theme-elevation-500) 8%, transparent);
+    border-color: var(--theme-elevation-300);
+    color: var(--theme-text);
+  }
+  .pill--style-dark {
+    background: var(--pt-accent);
+    border: 1px solid transparent;
+    color: var(--pt-accent-contrast);
+  }
+  .pill--style-dark.pill--has-action:hover {
+    background: var(--pt-accent-hover);
+    color: var(--pt-accent-contrast);
+  }
+
+  /* ---- "Create New" (btn--style-pill): accent-subtle chip that fills
+   * with the accent on hover. Buttons paint from their local vars. */
+  .btn--style-pill {
+    --bg-color: var(--pt-accent-subtle);
+    --color: var(--pt-accent);
+    --hover-bg: var(--pt-accent);
+    --hover-color: var(--pt-accent-contrast);
+  }
+
+  /* ---- doc tabs (Edit / Versions / API): the shadcn Tabs list — a muted
+   * rounded track; the active segment lifts on a white chip with an xs
+   * shadow. */
+  .doc-tabs__tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin: 0;
+    padding: 3px;
+    list-style: none;
+    background: var(--theme-elevation-100);
+    border: 0;
+    border-radius: var(--pt-radius-ctl);
+  }
+  html[data-theme='dark'] .doc-tabs__tabs {
+    background: var(--theme-elevation-50);
+  }
+  .doc-tab {
+    background: transparent;
+    border-radius: calc(var(--pt-radius-ctl) - 2px);
+    color: var(--theme-elevation-500);
+    --btn-padding-block-start: 4px;
+    --btn-padding-block-end: 4px;
+    --btn-padding-inline-start: 14px;
+    --btn-padding-inline-end: 14px;
+    font-size: var(--pt-text-xs);
+    font-weight: 500;
+  }
+  a.doc-tab:hover,
+  a.doc-tab:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+    color: var(--theme-text);
+    text-decoration: none;
+  }
+  .doc-tab--active {
+    background: var(--theme-elevation-0);
+    color: var(--theme-text);
+    box-shadow: var(--pt-shadow-xs);
+  }
+  html[data-theme='dark'] .doc-tab--active {
+    background: var(--theme-elevation-150);
+  }
+
+  /* ---- relationship "+" (add new related doc): a detached square chip
+   * matching the 40px input height. */
+  .relationship-add-new__add-button {
+    width: 40px;
+    height: 40px;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--theme-input-bg);
+    border: 1px solid var(--pt-input-border);
+    border-radius: var(--pt-radius-ctl);
+    color: var(--theme-elevation-600);
+    transition:
+      border-color 0.12s ease,
+      background-color 0.12s ease,
+      color 0.12s ease;
+  }
+  .relationship-add-new__add-button:hover,
+  .relationship-add-new__add-button:focus-visible {
+    background: var(--pt-accent-subtle);
+    border-color: color-mix(in srgb, var(--pt-accent) 40%, var(--pt-input-border));
+    color: var(--pt-accent);
+  }
+
+  /* ---- array / blocks "add row" (Add Image, Add Layout, …): ONE standard
+   * control — a full-width dashed "add card" bar that matches the row cards
+   * it appends to. Rest: muted; hover: accent border + wash, like a dropzone
+   * receiving a drag. Payload paints label/stroke from --btn-color. */
+  .array-field__add-row,
+  .blocks-field__drawer-toggler {
+    --btn-color: var(--theme-elevation-500);
+    width: 100%;
+    margin-block-start: 4px;
+    justify-content: center;
+    border: 1px dashed var(--theme-elevation-300);
+    border-radius: var(--pt-radius-card);
+    background: color-mix(in srgb, var(--theme-elevation-50) 40%, transparent);
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease;
+  }
+  .array-field__add-row .btn__content,
+  .blocks-field__drawer-toggler .btn__content {
+    width: 100%;
+    justify-content: center;
+    padding-block: 4px;
+    font-weight: 500;
+  }
+  .array-field__add-row:hover,
+  .array-field__add-row:focus-visible,
+  .blocks-field__drawer-toggler:hover,
+  .blocks-field__drawer-toggler:focus-visible {
+    --btn-color: var(--pt-accent);
+    border-color: color-mix(in srgb, var(--pt-accent) 45%, var(--theme-elevation-300));
+    background: var(--pt-accent-subtle);
+  }
+  .array-field__add-row .btn__icon,
+  .blocks-field__drawer-toggler .btn__icon {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    color: inherit;
+  }
+}
+/* ==================================================================== *
+ * DOC CHROME — popup menus, confirmation modal, status, API view
+ *
+ * The document-level chrome: the "..." actions popup (and every other
+ * Popup instance — per-page, sort, column menus inherit this), the
+ * delete-confirmation dialog, the Status meta chip and the API view's
+ * JSON panel. Pure CSS.
+ * ==================================================================== */
+@layer payload {
+  /* ---- popup menus: shadcn DropdownMenu language ---- */
+  .popup__content {
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-md);
+    padding: 5px;
+  }
+  html[data-theme='dark'] .popup__content {
+    background: var(--theme-elevation-50);
+  }
+  .popup__caret {
+    display: none; /* floating menu, no caret (shadcn) */
+  }
+  .popup-button-list__button {
+    border-radius: var(--pt-radius-item);
+    padding: 7px 10px;
+    color: var(--theme-text);
+    text-decoration: none;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+  }
+  .popup-button-list__button:hover,
+  .popup-button-list__button:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+    color: var(--theme-text);
+    text-decoration: none;
+  }
+
+  /* ---- confirmation modal: shadcn Dialog box ---- */
+  .confirmation-modal__wrapper {
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-lg);
+  }
+  html[data-theme='dark'] .confirmation-modal__wrapper {
+    background: var(--theme-elevation-50);
+  }
+  .confirmation-modal__content h1 {
+    margin-bottom: 6px;
+    font-size: var(--pt-text-xl);
+    letter-spacing: -0.015em;
+  }
+  /* the title and its supporting line read as ONE block */
+  .confirmation-modal__content p {
+    margin-top: 0;
+    color: var(--theme-elevation-500);
+  }
+
+  /* ---- status meta (doc controls / versions): quiet chip ---- */
+  .status__value-wrap {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--theme-elevation-100);
+    font-size: var(--pt-text-2xs);
+  }
+  .status__label {
+    color: var(--theme-elevation-500);
+  }
+  .status__value {
+    font-weight: 600;
+  }
+
+  /* ---- API view: JSON results as a card; copy button gets a hover chip */
+  .query-inspector__results {
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    padding: 14px 16px;
+  }
+  html[data-theme='dark'] .query-inspector__results {
+    background: var(--theme-elevation-50);
+  }
+  .copy-to-clipboard {
+    border-radius: var(--pt-radius-item);
+    color: var(--theme-elevation-500);
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+  }
+  .copy-to-clipboard:hover,
+  .copy-to-clipboard:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+    color: var(--theme-text);
+  }
+}
+/* ==================================================================== *
+ * UPLOAD FAMILY — dropzone, file details, upload cards, thumbnails
+ *
+ * Media create (Dropzone), media edit (FileDetails header card), the
+ * upload field card (e.g. Cover Image) and thumbnails in table cells.
+ * ==================================================================== */
+@layer payload {
+  /* ---- dropzone: input-like surface with a dashed border; accent
+   * feedback while a file is dragged over it (Payload adds .dragging) */
+  .file-field {
+    background: transparent; /* the zone paints itself; no gray box behind */
+  }
+  .dropzone {
+    background: color-mix(in srgb, var(--theme-elevation-50) 55%, transparent);
+    border: 1px dashed var(--theme-elevation-300);
+    border-radius: var(--pt-radius-card);
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease;
+  }
+  .dropzone:hover {
+    border-color: var(--theme-elevation-400);
+  }
+  .dropzone.dragging {
+    border-color: var(--pt-accent);
+    background: var(--pt-accent-subtle);
+  }
+  /* a gentle breathing ring while a file hovers over the zone */
+  @media (prefers-reduced-motion: no-preference) {
+    .dropzone.dragging {
+      animation: pt-drop-pulse 1.3s ease-in-out infinite;
+    }
+  }
+  .file-field__orText,
+  .file-field__dragAndDropText {
+    color: var(--theme-elevation-500);
+  }
+
+  /* ---- media edit header card (thumbnail + filename + meta) ---- */
+  .file-details {
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-xs);
+    overflow: hidden; /* clips the flush-left thumbnail to the radius */
+  }
+  html[data-theme='dark'] .file-details {
+    background: var(--theme-elevation-50);
+  }
+  .file-meta__url a {
+    text-decoration: none;
+  }
+  .file-meta__url a:hover,
+  .file-meta__url a:focus-visible {
+    color: var(--pt-accent);
+    text-decoration: none;
+  }
+  .file-meta__size-type {
+    color: var(--theme-elevation-500);
+  }
+
+  /* ---- upload field card (Cover Image & co.) ---- */
+  .upload-field-card {
+    background: var(--theme-input-bg);
+    border-radius: var(--pt-radius-card);
+  }
+  html[data-theme='dark'] .upload-field-card {
+    background: var(--theme-elevation-50);
+  }
+  .upload-relationship-details__filename a {
+    text-decoration: none;
+  }
+  .upload-relationship-details__filename a:hover,
+  .upload-relationship-details__filename a:focus-visible {
+    color: var(--pt-accent);
+    text-decoration: none;
+  }
+  .upload-relationship-details__meta {
+    color: var(--theme-elevation-500);
+  }
+
+  /* ---- thumbnails: soft corners in table cells and upload cards ---- */
+  td .thumbnail img,
+  .upload-field-card .thumbnail img {
+    border-radius: var(--pt-radius-item);
+    object-fit: cover;
+  }
+
+  /* ---- upload rows in the table: a proper thumbnail chip + filename ----
+   * Payload's FileCell already renders thumbnail + name. The size-critical
+   * rules live UNLAYERED at the end of this file — Payload's Thumbnail
+   * stylesheet ships unlayered (like NoListResults) and would beat any
+   * @layer rule; only the layout-safe bits stay here. */
+  .table td .file {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .table td .file__filename {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+}
+/* ==================================================================== *
+ * LIST — persistent row actions
+ *
+ * The edit + delete pair pinned to the table's right edge on EVERY row
+ * (rendered into Payload's table markup by ListQuickActions). The column
+ * hugs its content, the header cell stays empty, and delete is a two-step
+ * control — first click arms it into a red "Delete?" chip, second click
+ * commits.
+ * ==================================================================== */
+@layer payload {
+  .table th.pt-actions-cell {
+    width: 1%;
+  }
+  .table td.pt-actions-cell {
+    width: 1%;
+    white-space: nowrap;
+    text-align: end;
+    padding-inline-end: 12px;
+  }
+  .table td.pt-actions-cell .pt-actions__btn + .pt-actions__btn {
+    margin-inline-start: 2px;
+  }
+
+  .pt-actions__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    border-radius: var(--pt-radius-item);
+    color: var(--theme-elevation-400);
+    font-family: var(--font-body);
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color 0.1s ease,
+      color 0.1s ease;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+  a.pt-actions__btn:hover,
+  a.pt-actions__btn:focus-visible {
+    text-decoration: none;
+  }
+  .pt-actions__btn:hover,
+  .pt-actions__btn:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+    color: var(--theme-text);
+  }
+  .pt-actions__btn:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .pt-actions__btn--danger:hover,
+  .pt-actions__btn--danger:focus-visible {
+    background: color-mix(in srgb, var(--theme-error-500) 12%, transparent);
+    color: var(--theme-error-600);
+  }
+  .pt-actions__btn--armed,
+  .pt-actions__btn--armed:hover,
+  .pt-actions__btn--armed:focus-visible {
+    width: auto;
+    padding: 0 9px;
+    background: color-mix(in srgb, var(--theme-error-500) 12%, transparent);
+    color: var(--theme-error-600);
+    font-size: var(--pt-text-xs);
+    font-weight: 600;
+  }
+}
+/* ==================================================================== *
+ * FEEDBACK — toasts, tooltips, banners, error pills
+ *
+ * Shape-only pass: Payload's feedback layer already uses the semantic
+ * success/error/warning tokens (kept independent of the accent, per the
+ * theme contract) — we only modernize radius, shadow and typography.
+ * ==================================================================== */
+@layer payload {
+  /* ---- toasts (sonner): the shadcn sonner card ----
+   * One quiet white card for every type; the semantic color lives ONLY in
+   * the icon (sonner stamps data-type on each toast), so a burst of toasts
+   * doesn't turn the corner of the screen into a traffic light. */
+  .payload-toast-container .payload-toast-item {
+    align-items: flex-start;
+    gap: 10px;
+    padding: 13px 15px;
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-lg);
+    color: var(--theme-text);
+    font-family: var(--font-body);
+  }
+  html[data-theme='dark'] .payload-toast-container .payload-toast-item {
+    background: var(--theme-elevation-50);
+  }
+  .payload-toast-container .payload-toast-item .toast-title {
+    font-size: var(--pt-text-base);
+    font-weight: 550;
+    line-height: 1.45;
+  }
+  .payload-toast-container .payload-toast-item .toast-icon {
+    color: var(--theme-elevation-500);
+  }
+  .payload-toast-container .payload-toast-item[data-type='success'] .toast-icon {
+    color: var(--pt-ok);
+  }
+  .payload-toast-container .payload-toast-item[data-type='error'] .toast-icon {
+    color: var(--theme-error-500);
+  }
+  .payload-toast-container .payload-toast-item[data-type='warning'] .toast-icon {
+    color: var(--pt-warn);
+  }
+
+  /* ---- skeletons (ShimmerEffect placeholders): calm zinc blocks with a
+   * soft sweep — list views, lazy drawers and thumbnails all inherit it ---- */
+  .shimmer-effect {
+    background-color: var(--theme-elevation-100);
+    border-radius: var(--pt-radius-item);
+    overflow: hidden;
+  }
+  .shimmer-effect__shine {
+    background-image: linear-gradient(
+      90deg,
+      transparent 8%,
+      color-mix(in srgb, var(--theme-elevation-0) 65%, transparent) 18%,
+      transparent 33%
+    );
+  }
+
+  /* ---- tooltips: rounded bubble ---- */
+  .tooltip {
+    border-radius: var(--pt-radius-item);
+    font-size: var(--pt-text-2xs);
+    font-weight: 500;
+  }
+
+  /* ---- inline field errors (red tooltip bubble) ---- */
+  .field-error.tooltip {
+    border-radius: var(--pt-radius-item);
+    font-weight: 500;
+  }
+
+  /* ---- error pills (tab/collapsible error counts) ---- */
+  .error-pill {
+    border-radius: 999px;
+    font-weight: 600;
+  }
+
+  /* ---- banners ---- */
+  .banner {
+    border-radius: var(--pt-radius-card);
+  }
+}
+/* ==================================================================== *
+ * AUTH SCREENS — login / forgot-password / reset
+ *
+ * Payload renders auth views in `template-minimal` on the bare page
+ * background (the gray field). We turn the inner wrap into a centered
+ * login card: logo on top, themed inputs (already styled by the FORMS
+ * module), full-width accent submit.
+ * ==================================================================== */
+@layer payload {
+  .template-minimal .template-minimal__wrap {
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-lg);
+    padding: 40px 36px 36px;
+  }
+  html[data-theme='dark'] .template-minimal .template-minimal__wrap {
+    background: var(--theme-elevation-50);
+  }
+
+  /* brand block: centered logo with air below */
+  .login__brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+  .template-minimal__wrap .graphic-logo {
+    height: 30px;
+    width: auto;
+  }
+
+  /* forgot-password link: quiet, accent on hover */
+  .login__form > a {
+    font-size: var(--pt-text-xs);
+    color: var(--theme-elevation-500);
+    text-decoration: none;
+  }
+  .login__form > a:hover,
+  .login__form > a:focus-visible {
+    color: var(--pt-accent);
+    text-decoration: none;
+  }
+
+  /* full-width submit inside auth cards only */
+  .template-minimal .form-submit .btn {
+    width: 100%;
+  }
+}
+/* ==================================================================== *
+ * VERSIONS — compare/diff polish
+ *
+ * The versions list and diff view inherit almost everything (table card,
+ * pills, accent buttons, selects, content card). Only the diff
+ * highlights needed softening; their colors stay semantic via Payload's
+ * own --diff-* variables.
+ * ==================================================================== */
+@layer payload {
+  /* rounded corners for the block-level diff highlight backgrounds */
+  .html-diff :is(p, h1, h2, h3, h4, h5, h6, blockquote, pre)::before {
+    border-radius: var(--pt-radius-item);
+  }
+  /* inline added/removed marks */
+  .html-diff [data-match-type='create'],
+  .html-diff [data-match-type='delete'] {
+    border-radius: 4px;
+  }
+  /* compare-table field labels: quiet hierarchy */
+  .field-diff-label {
+    color: var(--theme-elevation-600);
+    font-size: var(--pt-text-xs);
+  }
+}
+/* ==================================================================== *
+ * POLISH — toast close, modal sizing, pill centering
+ * ==================================================================== */
+@layer payload {
+  /* confirmation dialogs (delete / leave-without-saving): tighter box,
+   * but short messages must not collapse it into a cramped square */
+  .confirmation-modal__wrapper {
+    padding: 26px 30px;
+    gap: 14px;
+    min-width: min(620px, calc(100vw - 48px));
+  }
+
+  /* pill labels center within their capsule everywhere */
+  .pill {
+    justify-content: center;
+  }
+  .pill__label {
+    text-align: center;
+  }
+  .id-label {
+    border-radius: 999px;
+    justify-content: center;
+  }
+
+  /* ---- press feedback: solid actions dip 1px under the pointer — the
+   * tactile half of the "expensive product" feel. Reduced-motion safe. ---- */
+  @media (prefers-reduced-motion: no-preference) {
+    .btn--style-primary:active,
+    .btn--style-pill:active,
+    .pt-custom__reset:active,
+    .pt-custom__copy:active,
+    .pt-header-btn:not(.pt-nav-collapse):active,
+    .pt-dash__card-create:active {
+      transform: translateY(1px);
+    }
+  }
+}
+
+/* UNLAYERED on purpose: sonner (toasts) ships unlayered CSS, which beats
+ * every cascade layer — same trick as the datepicker overrides. Toasts
+ * auto-dismiss; the floating X badge reads as clutter. */
+.payload-toast-container [data-close-button],
+.payload-toast-container .payload-toast-close-button {
+  display: none !important;
+}
+/* ==================================================================== *
+ * RESPONSIVE — mobile drawer + toggler redesign
+ *
+ * 1) Toggler (app header, ≤1440px): a chip with lucide's panel-left-open
+ *    mark — the same affordance the reference kit uses.
+ * 2) Mobile nav = a real DRAWER: a ~300px panel sliding in from the left
+ *    over a blurred scrim. No X button — tapping the scrim (or Esc, or
+ *    navigating) closes it. Payload's stock mobile nav is a full-width
+ *    opacity fade; everything below re-shapes it inside ≤1440px only, so
+ *    the always-on desktop sidebar is untouched.
+ * 3) Small screens: undo Payload's full-bleed table and restack the
+ *    search bar's Columns/Filters pills.
+ * ==================================================================== */
+@layer payload {
+  /* ---- toggler (app header, mobile): chip + panel-left-open mark ---- */
+  .app-header__mobile-nav-toggler {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--pt-radius-ctl);
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.12s ease;
+  }
+  /* only below Payload's nav breakpoint — forcing display everywhere
+   * would resurrect the toggler on desktop where Payload hides it */
+  @media (max-width: 1440px) {
+    .app-header__mobile-nav-toggler {
+      display: inline-flex;
+    }
+  }
+  .app-header__mobile-nav-toggler:hover,
+  .app-header__mobile-nav-toggler:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+  }
+  .app-header__mobile-nav-toggler .hamburger {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    background: transparent; /* Payload paints the .hamburger box itself */
+    border-radius: 0;
+    box-shadow: none; /* the stock 1px ring is a box-shadow, not a border */
+  }
+  .app-header__mobile-nav-toggler .hamburger > * {
+    display: none; /* replace the stock menu icon with our own mark */
+  }
+  .app-header__mobile-nav-toggler .hamburger::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--theme-elevation-800);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='3' rx='2'/%3E%3Cpath d='M9 3v18'/%3E%3Cpath d='m14 9 3 3-3 3'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='3' rx='2'/%3E%3Cpath d='M9 3v18'/%3E%3Cpath d='m14 9 3 3-3 3'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  /* Payload dims the toggler while the nav is open; the scrim already
+   * communicates state, so keep the chip steady. */
+  .app-header__mobile-nav-toggler.nav-toggler--is-open {
+    opacity: 1;
+  }
+
+  /* ---- backdrop lives only in drawer mode ---- */
+  .pt-nav__backdrop {
+    display: none;
+  }
+
+  /* ---- the drawer (≤1440px) ---- */
+  @media (max-width: 1440px) {
+    /* The drawer is an OVERLAY — the template grid must never reserve a
+     * nav column for it. Payload's stock rule pushes the content aside by
+     * var(--nav-width) (100vw on phones!) while the nav is open, which
+     * crushed every page to zero width. Pin the nav column to 0 in every
+     * hydrated state and drop the grid-column transition with it. */
+    .template-default--nav-hydrated,
+    .template-default--nav-hydrated.template-default--nav-open {
+      grid-template-columns: 0 minmax(0, 1fr);
+    }
+    /* The fixed-position nav leaves the grid flow, which would promote the
+     * content wrap into the (zero-width) nav track — pin it to track 2. */
+    .template-default--nav-hydrated .template-default__wrap {
+      grid-column: 2;
+    }
+    .template-default--nav-animate {
+      transition: none;
+    }
+    /* keep the content card's left gutter while the drawer is open —
+     * frame.css only adds it for the not-nav-open state, and only ≥769px
+     * (phones keep the full-bleed card) */
+    @media (min-width: 769px) {
+      .template-default--nav-open .template-default__wrap {
+        margin-inline-start: var(--pt-frame-inset, 8px);
+      }
+    }
+
+    /* The aside becomes a full-viewport overlay CONTAINER: transparent and
+     * click-through at rest; the scrim and panel inside carry the visuals.
+     * Payload's stock opacity fade is neutralized (opacity stays 1) — the
+     * panel transform + scrim fade below are the whole animation. */
+    .pt-nav {
+      position: fixed;
+      inset: 0;
+      z-index: 120; /* above the sticky app header, below palette/modals */
+      width: 100%;
+      height: 100dvh;
+      border-right: 0;
+      background: transparent;
+      opacity: 1;
+      overflow: visible;
+      pointer-events: none;
+    }
+    [dir='rtl'] .pt-nav {
+      border-left: 0;
+    }
+    .pt-nav.nav--nav-animate {
+      transition: none; /* Payload's opacity transition — not wanted */
+    }
+
+    /* scrim: blurred + dimmed, fades with the panel, tap to close */
+    .pt-nav .pt-nav__backdrop {
+      display: block;
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: rgb(5 6 10 / 0.4);
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .pt-nav.nav--nav-open .pt-nav__backdrop {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* panel: a ~300px sheet sliding in from the inline-start edge */
+    .pt-nav .nav__scroll {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      inset-inline-start: 0;
+      z-index: 1;
+      width: min(304px, 86vw);
+      --nav-padding-block-start: 20px; /* no X header row to clear anymore */
+      background: var(--theme-bg);
+      border-inline-end: 1px solid var(--theme-border-color);
+      box-shadow: var(--pt-shadow-lg);
+      pointer-events: auto;
+      transform: translateX(-100%);
+    }
+    [dir='rtl'] .pt-nav .nav__scroll {
+      transform: translateX(100%);
+    }
+    .pt-nav.nav--nav-open .nav__scroll {
+      transform: translateX(0);
+    }
+
+    /* one smooth curve for both layers, honoring reduced motion */
+    @media (prefers-reduced-motion: no-preference) {
+      .pt-nav .nav__scroll {
+        transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+      }
+      .pt-nav .pt-nav__backdrop {
+        transition: opacity 0.28s ease;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  @layer payload {
+    /* undo Payload's full-bleed table so the card keeps side margins
+     * (the bleed lives on .table-wrap, the table just fills it) */
+    .table,
+    .table-wrap {
+      margin-inline: 0;
+      padding-left: 0;
+      width: 100%;
+    }
+
+    /* search bar hosts the Columns/Filters pills on mobile: stack them
+     * cleanly inside a rounded-rect box */
+    .search-bar {
+      height: auto;
+      flex-wrap: wrap;
+      align-items: center;
+      row-gap: 10px;
+      padding: 10px 14px;
+      border-radius: var(--pt-radius-card);
+    }
+    .search-bar__actions {
+      width: 100%;
+      display: flex;
+      gap: 8px;
+    }
+    .search-bar__actions .pill {
+      flex: 1 1 0;
+      height: 32px;
+    }
+  }
+}
+/* ==================================================================== *
+ * LAYOUT V2 — content container + card-based forms
+ *
+ * 1) Every page's content is centered and capped (~1280px) so ultra-wide
+ *    screens stop stretching forms edge to edge. Centering happens via
+ *    GROWING PADDING, not max-width: these gutters paint the content
+ *    surface, so capping their box would leak side bands.
+ * 2) Edit views (collections, account, globals — NOT drawers, hence the
+ *    direct-child scope on the page root): the main fields column is ONE
+ *    bordered card; each top-level group field (e.g. Seo) becomes its own
+ *    muted inset panel; the sidebar becomes a bordered card too; the old
+ *    full-height divider goes away; doc-controls slims down into a sticky
+ *    translucent command bar under the app header.
+ * ==================================================================== */
+@layer payload {
+  /* ---- 1) global content container ---- */
+  .template-default__wrap .gutter--left.gutter--right {
+    padding-inline: max(var(--gutter-h), calc((100% - var(--pt-content-width, 1280px)) / 2));
+  }
+  .template-default__wrap > .collection-edit .document-fields {
+    width: 100%;
+    max-width: calc(var(--pt-content-width, 1280px) + 120px);
+    margin-inline: auto;
+  }
+
+  /* tables stay inside the container at every width — Payload full-bleeds
+   * them below its 1440px breakpoint; horizontal overflow scrolls INSIDE
+   * the rounded card instead of jutting past the toolbar */
+  .table-wrap,
+  .table {
+    width: 100%;
+    margin-inline: 0;
+    padding-inline: 0;
+    /* Payload also shifts tables with position:relative + negative left
+     * at some breakpoints — pin them back inside the container */
+    inset-inline: 0;
+  }
+
+  /* ---- 2) edit views: cards ---- */
+  /* main fields column = one card (outer gutter paddings preserved) */
+  .template-default__wrap > .collection-edit .document-fields__fields {
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-xs);
+    padding: 28px 32px 32px;
+  }
+  html[data-theme='dark'] .template-default__wrap > .collection-edit .document-fields__fields {
+    background: var(--theme-elevation-50);
+  }
+
+  /* the divider between main and sidebar is replaced by the cards */
+  .template-default__wrap > .collection-edit .document-fields__edit {
+    border-right: 0;
+  }
+
+  /* tabs fields: Payload bleeds the tab strip (and its divider) out by
+   * --gutter-h and pads it back in — inside the card that juts the
+   * divider past both card edges. Keep strip and panel on the card's
+   * content box instead. (Tabs nested in a collapsible keep their own
+   * bleed.) */
+  .template-default__wrap
+    > .collection-edit
+    .document-fields__fields
+    .tabs-field:not(.tabs-field--within-collapsible) {
+    margin-inline: 0;
+  }
+  .template-default__wrap
+    > .collection-edit
+    .document-fields__fields
+    .tabs-field:not(.tabs-field--within-collapsible)
+    > .tabs-field__content-wrap {
+    padding-inline: 0;
+  }
+  .template-default__wrap
+    > .collection-edit
+    .document-fields__fields
+    .tabs-field:not(.tabs-field--within-collapsible)
+    > .tabs-field__tabs-wrap
+    > .tabs-field__tabs::before,
+  .template-default__wrap
+    > .collection-edit
+    .document-fields__fields
+    .tabs-field:not(.tabs-field--within-collapsible)
+    > .tabs-field__tabs-wrap
+    > .tabs-field__tabs::after {
+    width: 0;
+  }
+
+  /* top-level group fields (Seo, …): their own muted inset panel with a
+   * clear header — reads as a separate section */
+  .template-default__wrap > .collection-edit .group-field--top-level {
+    background: var(--theme-elevation-50);
+    border: 1px solid var(--theme-elevation-100);
+    border-radius: var(--pt-radius-card);
+    padding: 22px 26px 26px;
+    /* Payload bleeds top-level groups with negative side margins — reset
+     * so the panel stays inside the card instead of jutting out */
+    margin: 10px 0;
+    width: 100%;
+  }
+  /* dark: the panel is a RAISED surface one rung above the card — never a
+   * darker well (elevation-0 here is near-black and read as a hole). Inputs
+   * inside sit flat on the panel: transparent with a visible border, so
+   * they don't punch dark holes back into the lifted surface. */
+  html[data-theme='dark'] .template-default__wrap > .collection-edit .group-field--top-level {
+    background: var(--theme-elevation-100);
+    border-color: var(--theme-elevation-150);
+  }
+  /* (the flat-field rule itself lives in STRUCTURED FIELDS — it covers
+   * group panels and blocks/array row lists with one selector) */
+  .template-default__wrap > .collection-edit .group-field--top-level > .group-field__header {
+    margin-bottom: 14px;
+  }
+
+  /* sidebar card — static per user preference (no sticky, no pinning).
+   * The card is the inner __sidebar-fields box: the outer __sidebar is
+   * the full-height column, so carding it painted a wall to the edge. */
+  .template-default__wrap > .collection-edit .document-fields__sidebar-wrap {
+    position: static;
+  }
+  .template-default__wrap > .collection-edit .document-fields__sidebar {
+    background: transparent;
+  }
+  .template-default__wrap > .collection-edit .document-fields__sidebar-fields {
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-xs);
+    padding: 24px 26px;
+    margin: 30px 40px 0 0; /* top-align with the main card; keep a right gutter */
+  }
+  /* ≤1024px Payload stacks the sidebar under the main card. Its column
+   * sits OUTSIDE the content gutters (full-bleed), so mirror the gutter as
+   * inline margins — the card lines up exactly with the main card above. */
+  @media (max-width: 1024px) {
+    .template-default__wrap > .collection-edit .document-fields__sidebar-fields {
+      margin: 16px var(--gutter-h, 16px) 0;
+    }
+  }
+  html[data-theme='dark']
+    .template-default__wrap
+    > .collection-edit
+    .document-fields__sidebar-fields {
+    background: var(--theme-elevation-50);
+  }
+
+  /* ---- 3) doc-controls: floating command bar ----
+   * Payload already makes this bar sticky; it now docks right under the
+   * sticky app header — a translucent surface with backdrop blur and a
+   * bottom hairline that doubles as the header/content separator of the
+   * edit views. (--theme-bg resolves to the card surface inside the wrap.) */
+  .template-default__wrap .doc-controls {
+    top: var(--app-header-height);
+  }
+  .template-default__wrap > .collection-edit .doc-controls {
+    background: color-mix(in srgb, var(--theme-bg) 82%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--theme-elevation-100);
+  }
+  .template-default__wrap > .collection-edit .doc-controls__content {
+    padding: 10px 0;
+  }
+
+  /* meta line: status chip + "·"-separated muted timestamps */
+  .doc-controls__meta {
+    align-items: center;
+    gap: 12px;
+    font-size: var(--pt-text-xs);
+  }
+  .doc-controls__list-item {
+    display: flex;
+    align-items: center;
+  }
+  .doc-controls__list-item + .doc-controls__list-item::before {
+    content: '·';
+    margin-right: 12px;
+    color: var(--theme-elevation-300);
+  }
+  .doc-controls__label {
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-2xs);
+  }
+  .doc-controls__value {
+    color: var(--theme-elevation-700);
+    font-size: var(--pt-text-2xs);
+    font-weight: 500;
+  }
+  /* status: drop the "Status:" prefix — the chip form says it already */
+  .doc-controls .status__label {
+    display: none;
+  }
+  .doc-controls .status__value-wrap {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 11px;
+    border-radius: 999px;
+    background: var(--theme-elevation-100);
+    color: var(--theme-elevation-600);
+    font-size: var(--pt-text-2xs);
+    font-weight: 500;
+  }
+}
+/* ==================================================================== *
+ * LOGIN — split-layout brand panel
+ *
+ * The LoginHero component (registered via beforeLogin) injects
+ * `.pt-login-hero` into the login view only; all split-layout rules are
+ * gated on `:has(.pt-login-hero)` so forgot-password / reset keep the
+ * plain centered card. The hero is permanently dark and paints its glow
+ * from the accent scale, so it works with any accent + either scheme.
+ * ==================================================================== */
+@layer payload {
+  .template-minimal:has(.pt-login-hero) {
+    width: min(1060px, 100%);
+    max-width: none;
+  }
+
+  .template-minimal__wrap:has(.pt-login-hero) {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    /* Payload caps the minimal-template card around 600px — the split card
+     * needs the whole widened section. */
+    width: 100%;
+    max-width: none;
+    min-height: 620px;
+    overflow: hidden;
+    padding: 56px 64px;
+    padding-inline-start: calc(46% + 64px);
+  }
+
+  /* The hero carries the branding — drop the duplicate logo above the form. */
+  .template-minimal__wrap:has(.pt-login-hero) .login__brand {
+    display: none;
+  }
+
+  /* the form column fills the space right of the hero */
+  .template-minimal__wrap:has(.pt-login-hero) .login__form {
+    width: 100%;
+  }
+  .template-minimal__wrap:has(.pt-login-hero) .login__form .field-type input:not([type='checkbox']) {
+    width: 100%;
+  }
+
+  .pt-login-hero {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 46%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 44px 44px 40px;
+    overflow: hidden;
+    background: #0b0c12;
+    color: #fff;
+    /* Payload's wordmark paints inline with var(--theme-elevation-1000)
+     * (black in light scheme) — remap it inside the always-dark panel. */
+    --theme-elevation-1000: #fff;
+  }
+
+  .pt-login-hero__glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(
+        120% 90% at 15% -5%,
+        color-mix(in srgb, var(--pt-accent) 78%, transparent),
+        transparent 64%
+      ),
+      radial-gradient(
+        110% 85% at 95% 105%,
+        color-mix(in srgb, var(--pt-accent-active) 55%, transparent),
+        transparent 60%
+      );
+  }
+  /* a very slow breathing drift on the glow — CSS-only, so the login panel
+   * moves in a screen recording without a single script. The layer scales
+   * past its box while drifting so no edge is ever exposed; the hero clips. */
+  @media (prefers-reduced-motion: no-preference) {
+    .pt-login-hero__glow {
+      animation: pt-glow-drift 16s ease-in-out infinite alternate;
+      will-change: transform, opacity;
+    }
+  }
+
+  .pt-login-hero__grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgb(255 255 255 / 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 0.055) 1px, transparent 1px);
+    background-size: 36px 36px;
+    -webkit-mask-image: radial-gradient(120% 110% at 25% 15%, #000, transparent 78%);
+    mask-image: radial-gradient(120% 110% at 25% 15%, #000, transparent 78%);
+  }
+
+  /* The user's own logo, centered above the login form (rendered only when
+   * a logo/icon option is configured — no Payload-logo fallback). Sized by
+   * the same --pt-logo-height knob as the nav logo. */
+  .pt-login__logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
+  .pt-login__logo-img {
+    height: var(--pt-logo-height, 32px);
+    width: auto;
+  }
+  /* Payload's fallback mark sizes the same way (its fill follows the scheme). */
+  .pt-login__logo .graphic-logo {
+    height: var(--pt-logo-height, 32px);
+    width: auto;
+  }
+  html[data-theme='dark'] .pt-login__logo-img--light,
+  html:not([data-theme='dark']) .pt-login__logo-img--dark {
+    display: none;
+  }
+
+  .pt-login-hero__copy {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    /* No logo in the panel anymore — the copy is the panel's only content
+     * and sits at the bottom; keep it there even in a flex column. */
+    margin-top: auto;
+  }
+  .pt-login-hero__heading {
+    margin: 0;
+    font-size: clamp(1.7rem, 2.4vw, 2.1rem);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: #fff;
+  }
+  .pt-login-hero__tagline {
+    margin: 0;
+    max-width: 34ch;
+    font-size: var(--pt-text-sm);
+    line-height: 1.55;
+    color: rgb(255 255 255 / 0.66);
+  }
+
+  /* Narrow screens: the panel folds away, the card returns to a single
+   * column. The default .login__brand stays hidden — the pt-login__logo
+   * above the form is the branding at every width. */
+  @media (max-width: 900px) {
+    .pt-login-hero {
+      display: none;
+    }
+    .template-minimal__wrap:has(.pt-login-hero) {
+      min-height: 0;
+      padding: 40px 36px 36px;
+    }
+  }
+}
+/* ==================================================================== *
+ * NAV — search trigger
+ *
+ * A real input-look box under the logo that opens the ⌘K palette — on the
+ * gray sidebar it reads as the reference's sidebar SearchForm (white
+ * field, xs shadow, kbd hint).
+ * ==================================================================== */
+@layer payload {
+  /* air between the logo and the search box — THE knob for this gap */
+  .pt-nav__logo {
+    padding-block-end: 20px;
+  }
+
+  .pt-nav__search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin: 0 0 16px;
+    padding: 7px 10px;
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-ctl);
+    box-shadow: var(--pt-shadow-xs);
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      border-color 0.12s ease,
+      background-color 0.12s ease,
+      color 0.12s ease;
+  }
+  .pt-nav__search:hover,
+  .pt-nav__search:focus-visible {
+    border-color: var(--theme-elevation-300);
+    color: var(--theme-elevation-700);
+  }
+  html[data-theme='dark'] .pt-nav__search {
+    background: var(--theme-elevation-50);
+  }
+  .pt-nav__search-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+  .pt-nav__search-label {
+    flex: 1;
+    text-align: start;
+  }
+  .pt-nav__search-kbd {
+    padding: 2px 6px;
+    border: 1px solid var(--theme-border-color);
+    border-radius: 5px;
+    background: var(--theme-elevation-50);
+    color: var(--theme-elevation-500);
+    font-family: var(--font-body);
+    font-size: var(--pt-text-3xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  html[data-theme='dark'] .pt-nav__search-kbd {
+    background: var(--theme-elevation-100);
+  }
+}
+/* ==================================================================== *
+ * COMMAND PALETTE — ⌘K
+ *
+ * Rendered by the CommandPalette component into a body portal, so these
+ * rules are UNLAYERED-safe inside @layer (nothing else targets them).
+ * ==================================================================== */
+@layer payload {
+  .pt-palette {
+    position: fixed;
+    inset: 0;
+    /* above every piece of admin chrome, incl. the mobile nav drawer */
+    z-index: 1200;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 14vh 16px 16px;
+  }
+  .pt-palette__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(5 6 10 / 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .pt-palette__panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(620px, 100%);
+    max-height: min(460px, 68vh);
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-lg);
+    overflow: hidden;
+  }
+  html[data-theme='dark'] .pt-palette__panel {
+    background: var(--theme-elevation-50);
+  }
+
+  .pt-palette__search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--theme-elevation-100);
+  }
+  .pt-palette__search-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: var(--theme-elevation-500);
+  }
+  .pt-palette__input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: none;
+    box-shadow: none;
+    color: var(--theme-text);
+    font-family: var(--font-body);
+    font-size: var(--pt-text-sm);
+  }
+  .pt-palette__input::placeholder {
+    color: var(--theme-elevation-400);
+  }
+  .pt-palette__esc {
+    flex-shrink: 0;
+    padding: 3px 7px;
+    background: var(--theme-elevation-50);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-item);
+    color: var(--theme-elevation-500);
+    font-family: var(--font-body);
+    font-size: var(--pt-text-2xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+  }
+  html[data-theme='dark'] .pt-palette__esc {
+    background: var(--theme-elevation-100);
+  }
+
+  .pt-palette__list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 8px 10px;
+    overscroll-behavior: contain;
+  }
+  .pt-palette__group-label {
+    padding: 10px 10px 4px;
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-xs);
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .pt-palette__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    background: transparent;
+    border: 0;
+    border-radius: var(--pt-radius-item);
+    color: var(--theme-text);
+    font-family: var(--font-body);
+    font-size: var(--pt-text-xs);
+    font-weight: 500;
+    text-align: start;
+    cursor: pointer;
+  }
+  .pt-palette__item--active {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+    color: var(--theme-text);
+  }
+  .pt-palette__item-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: var(--pt-radius-item);
+    background: var(--theme-elevation-100);
+    color: var(--theme-elevation-600);
+    transition:
+      background-color 0.1s ease,
+      color 0.1s ease;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+  .pt-palette__item--active .pt-palette__item-icon {
+    background: var(--pt-accent-subtle);
+    color: var(--pt-accent);
+  }
+  .pt-palette__item-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pt-palette__item-hint {
+    flex-shrink: 0;
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-3xs);
+    font-weight: 500;
+  }
+  .pt-palette__status {
+    padding: 20px 12px;
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-xs);
+    text-align: center;
+  }
+
+  .pt-palette__footer {
+    display: flex;
+    gap: 16px;
+    padding: 9px 16px;
+    border-top: 1px solid var(--theme-elevation-100);
+    background: var(--theme-elevation-50);
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-3xs);
+  }
+  html[data-theme='dark'] .pt-palette__footer {
+    background: var(--theme-elevation-100);
+  }
+  .pt-palette__footer span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .pt-palette__footer kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    padding: 1px 4px;
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: 4px;
+    font-family: var(--font-body);
+    font-size: var(--pt-text-3xs);
+    font-weight: 600;
+  }
+  html[data-theme='dark'] .pt-palette__footer kbd {
+    background: var(--theme-elevation-50);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .pt-palette__panel {
+      animation: pt-palette-in 0.16s ease both;
+    }
+    .pt-palette__backdrop {
+      animation: pt-fade-in 0.16s ease both;
+    }
+  }
+
+  /* small screens: full-width panel, dvh-based height (keyboard-safe) */
+  @media (max-width: 600px) {
+    .pt-palette {
+      padding: 12px 12px 16px;
+    }
+    .pt-palette__panel {
+      width: 100%;
+      max-height: min(78dvh, 560px);
+    }
+    .pt-palette__footer {
+      display: none; /* keyboard hints are noise on touch screens */
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * KEYBOARD SHORTCUTS — the `?` cheatsheet (same portal + card grammar
+   * as the palette)
+   * ------------------------------------------------------------------ */
+  .pt-shortcuts {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 16vh 16px 16px;
+  }
+  .pt-shortcuts__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(5 6 10 / 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .pt-shortcuts__panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(440px, 100%);
+    max-height: min(560px, 74vh);
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-lg);
+    overflow: hidden;
+  }
+  html[data-theme='dark'] .pt-shortcuts__panel {
+    background: var(--theme-elevation-50);
+  }
+  .pt-shortcuts__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--theme-elevation-100);
+  }
+  .pt-shortcuts__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--theme-text);
+    font-size: var(--pt-text-sm);
+    font-weight: 600;
+
+    svg {
+      width: 16px;
+      height: 16px;
+      color: var(--theme-elevation-500);
+    }
+  }
+  .pt-shortcuts__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: var(--pt-radius-item);
+    color: var(--theme-elevation-500);
+    cursor: pointer;
+    transition:
+      background-color 0.1s ease,
+      color 0.1s ease;
+
+    svg {
+      width: 15px;
+      height: 15px;
+    }
+  }
+  .pt-shortcuts__close:hover {
+    background: color-mix(in srgb, var(--theme-elevation-500) 10%, transparent);
+    color: var(--theme-text);
+  }
+  .pt-shortcuts__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 16px 16px;
+    overscroll-behavior: contain;
+  }
+  .pt-shortcuts__section-title {
+    padding: 12px 0 4px;
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-xs);
+    font-weight: 500;
+  }
+  .pt-shortcuts__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+  }
+  .pt-shortcuts__row + .pt-shortcuts__row {
+    border-top: 1px solid var(--theme-elevation-100);
+  }
+  .pt-shortcuts__row-label {
+    color: var(--theme-text);
+    font-size: var(--pt-text-xs);
+    font-weight: 450;
+  }
+  .pt-shortcuts__keys {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .pt-shortcuts__keys kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    padding: 2px 6px;
+    background: var(--theme-elevation-50);
+    border: 1px solid var(--theme-border-color);
+    border-radius: 5px;
+    color: var(--theme-elevation-600);
+    font-family: var(--font-body);
+    font-size: var(--pt-text-xs);
+    font-weight: 600;
+  }
+  html[data-theme='dark'] .pt-shortcuts__keys kbd {
+    background: var(--theme-elevation-100);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .pt-shortcuts__panel {
+      animation: pt-palette-in 0.16s ease both;
+    }
+    .pt-shortcuts__backdrop {
+      animation: pt-fade-in 0.16s ease both;
+    }
+  }
+}
+
+@keyframes pt-palette-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+@keyframes pt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+/* ==================================================================== *
+ * DOC OUTLINE — sticky "On this page" rail for long edit forms
+ *
+ * Rendered by the DocOutline component into a body portal. At rest it is a
+ * compact column of tick bars hugging the viewport's right edge (fits even
+ * when the edit view has a sidebar card); hovering or focusing it expands
+ * the labeled panel over the ticks. Hidden below 1500px — no spare room.
+ * ==================================================================== */
+@layer payload {
+  .pt-toc {
+    position: fixed;
+    top: 50%;
+    inset-inline-end: 10px;
+    z-index: 60;
+    display: none;
+    transform: translateY(-50%);
+  }
+  @media (min-width: 1500px) {
+    .pt-toc {
+      display: block;
+    }
+  }
+
+  /* ---- resting state: tick bars ---- */
+  .pt-toc__rail {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 7px;
+    padding: 10px 6px;
+    transition: opacity 0.15s ease;
+  }
+  .pt-toc__tick {
+    width: 14px;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--theme-elevation-200);
+    transition: background-color 0.15s ease;
+  }
+  .pt-toc__tick--active {
+    width: 20px;
+    background: var(--pt-accent);
+  }
+
+  /* ---- expanded state: labeled panel over the ticks ---- */
+  .pt-toc__panel {
+    position: absolute;
+    top: 50%;
+    inset-inline-end: 0;
+    transform: translateY(-50%);
+    width: 208px;
+    max-height: min(70vh, 480px);
+    overflow-y: auto;
+    padding: 10px;
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-lg);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.15s ease,
+      visibility 0.15s ease;
+  }
+  html[data-theme='dark'] .pt-toc__panel {
+    background: var(--theme-elevation-50);
+  }
+  .pt-toc:hover .pt-toc__rail,
+  .pt-toc:focus-within .pt-toc__rail {
+    opacity: 0;
+  }
+  .pt-toc:hover .pt-toc__panel,
+  .pt-toc:focus-within .pt-toc__panel {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .pt-toc__panel-title {
+    padding: 2px 8px 6px;
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-xs);
+    font-weight: 500;
+  }
+  .pt-toc__item {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 6px 8px 6px 16px;
+    background: transparent;
+    border: 0;
+    border-radius: var(--pt-radius-item);
+    color: var(--theme-elevation-600);
+    font-family: var(--font-body);
+    font-size: var(--pt-text-sm);
+    font-weight: 450;
+    text-align: start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 0.1s ease,
+      color 0.1s ease;
+  }
+  /* the left indicator bar every row carries; accent when active */
+  .pt-toc__item::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 6px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    border-radius: 999px;
+    background: var(--theme-elevation-150);
+    transition: background-color 0.1s ease;
+  }
+  .pt-toc__item:hover {
+    background: color-mix(in srgb, var(--theme-elevation-500) 8%, transparent);
+    color: var(--theme-text);
+  }
+  .pt-toc__item--active {
+    color: var(--theme-text);
+    font-weight: 550;
+  }
+  .pt-toc__item--active::before {
+    background: var(--pt-accent);
+  }
+  .pt-toc__item:focus-visible {
+    outline: 2px solid var(--pt-accent);
+    outline-offset: -2px;
+  }
+}
+/* ==================================================================== *
+ * LIST — empty state + generic value badges
+ * ==================================================================== */
+@layer payload {
+  /* (empty-state rules live UNLAYERED at the end of this file — Payload
+   * ships NoListResults styles unlayered, and unlayered beats @layer) */
+  /* lucide 'inbox' drawn via mask so it recolors with the accent */
+  .no-results::before {
+    content: '';
+    width: 42px;
+    height: 42px;
+    margin-bottom: 8px;
+    background: var(--pt-accent);
+    opacity: 0.85;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='22 12 16 12 14 15 10 15 8 12 2 12'/%3E%3Cpath d='M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z'/%3E%3C/svg%3E") no-repeat center / contain;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='22 12 16 12 14 15 10 15 8 12 2 12'/%3E%3Cpath d='M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z'/%3E%3C/svg%3E") no-repeat center / contain;
+  }
+  /* (h3/p/actions rules live in the unlayered block at the end of the file —
+   * they fight Payload's own unlayered NoListResults rules) */
+
+  /* ---- select-value badges ----
+   * Payload tags every select cell value with `selected--<value>`. Every
+   * value renders as the same quiet pill (text only, no dot); values whose
+   * name carries a well-known meaning pick up a soft semantic tone (green
+   * for live, amber for in-progress, blue for queued, red for failed) —
+   * anything else, custom select options included, stays neutral. */
+  .table td [class*='selected--'] {
+    --pt-tone-bg: var(--theme-elevation-100);
+    --pt-tone-text: var(--theme-elevation-600);
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--pt-tone-bg);
+    color: var(--pt-tone-text);
+    font-size: var(--pt-text-2xs);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .table
+    td
+    :is(
+      .selected--published,
+      .selected--active,
+      .selected--approved,
+      .selected--live,
+      .selected--completed,
+      .selected--done,
+      .selected--paid,
+      .selected--enabled,
+      .selected--success
+    ) {
+    --pt-tone-bg: color-mix(in srgb, var(--pt-ok) 12%, transparent);
+    --pt-tone-text: var(--pt-ok-text);
+  }
+  .table
+    td
+    :is(
+      .selected--draft,
+      .selected--pending,
+      .selected--review,
+      .selected--in-review,
+      .selected--changed,
+      .selected--unpaid,
+      .selected--warning
+    ) {
+    --pt-tone-bg: color-mix(in srgb, var(--pt-warn) 13%, transparent);
+    --pt-tone-text: var(--pt-warn-text);
+  }
+  .table
+    td
+    :is(
+      .selected--scheduled,
+      .selected--queued,
+      .selected--processing,
+      .selected--in-progress,
+      .selected--new,
+      .selected--info
+    ) {
+    --pt-tone-bg: color-mix(in srgb, var(--pt-info) 12%, transparent);
+    --pt-tone-text: var(--pt-info-text);
+  }
+  .table
+    td
+    :is(
+      .selected--rejected,
+      .selected--failed,
+      .selected--error,
+      .selected--cancelled,
+      .selected--canceled,
+      .selected--blocked,
+      .selected--expired,
+      .selected--disabled,
+      .selected--deleted
+    ) {
+    --pt-tone-bg: color-mix(in srgb, var(--pt-danger) 11%, transparent);
+    --pt-tone-text: var(--pt-danger-text);
+  }
+  /* archived reads as "out of play": the neutral pill, a step quieter */
+  .table td .selected--archived {
+    --pt-tone-text: var(--theme-elevation-450);
+  }
+}
+/* ==================================================================== *
+ * MOTION + FORM POLISH
+ *
+ * Quieter field typography. Views and dashboard cards mount without any
+ * entrance animation, so navigation never shifts content under the cursor —
+ * the route progress bar along the top edge is the only navigation cue.
+ * ==================================================================== */
+@layer payload {
+  /* ---- route progress bar ----
+   * Payload's RouteTransition bar (fixed, 2px, top of the viewport) paints
+   * in elevation-1000 — near-black on the light panel. Accent it instead,
+   * with a soft glow on the leading edge so the thin line still reads. */
+  .progress-bar__progress {
+    background-color: var(--pt-accent);
+    border-start-end-radius: 999px;
+    border-end-end-radius: 999px;
+    box-shadow:
+      0 0 10px color-mix(in srgb, var(--pt-accent) 55%, transparent),
+      0 0 4px color-mix(in srgb, var(--pt-accent) 40%, transparent);
+  }
+
+  /* ---- field typography: calm labels, quiet descriptions ---- */
+  .field-label {
+    font-size: var(--pt-text-xs);
+    font-weight: 500;
+    color: var(--theme-elevation-800);
+  }
+  .field-description {
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-2xs);
+  }
+
+  /* (collapsible / array / blocks row chrome lives in the STRUCTURED
+   * FIELDS module below) */
+}
+
+@keyframes pt-drop-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--pt-accent-ring) 22%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--pt-accent-ring) 8%, transparent);
+  }
+}
+
+@keyframes pt-glow-drift {
+  from {
+    opacity: 0.9;
+    transform: translate3d(-2%, -1.5%, 0) scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(2%, 2%, 0) scale(1.18);
+  }
+}
+/* ==================================================================== *
+ * STRUCTURED FIELDS — blocks, arrays, collapsibles (unified list v3)
+ *
+ * Blocks/array rows no longer float as separate cards: the rows container
+ * is ONE bordered list card and each row is a hairline-divided entry —
+ * grip, muted tabular number, a neutral block-type icon tile, the title,
+ * and ghost (borderless) kebab + chevron actions. Standalone collapsible
+ * FIELDS keep the bordered card look. The add-row action stays the
+ * full-width dashed bar (CONTROLS module). Behavior — toggle, drag,
+ * kebab, inline editing — is untouched.
+ * ==================================================================== */
+@layer payload {
+  /* ---- standalone collapsible fields: still a card ---- */
+  .collapsible {
+    border-radius: var(--pt-radius-card);
+    overflow: hidden;
+  }
+
+  /* The `overflow: hidden` above (and on the block/array list card below) is
+   * what clips the rounded corners — but it also clips any `select`
+   * (react-select) menu that opens inside the card, because Payload renders
+   * the menu INLINE, not into a portal (its `.rs__menu` z-index is only 4).
+   * The menu only exists in the DOM while it's open, so `:has(.rs__menu)`
+   * lifts the clip ONLY while a select is open — corner clipping is preserved
+   * at rest — and only for the card that actually contains the open menu.
+   * (The menu's own z-index lift lives with its styling in forms.css.) */
+  .collapsible:has(.rs__menu),
+  .blocks-field__rows:has(.rs__menu),
+  .array-field__draggable-rows:has(.rs__menu) {
+    overflow: visible;
+  }
+  .collapsible--style-default {
+    border: 1px solid var(--theme-border-color);
+    background: var(--theme-elevation-0);
+    box-shadow: var(--pt-shadow-xs);
+  }
+  html[data-theme='dark'] .collapsible--style-default {
+    background: color-mix(in srgb, #fff 2%, var(--theme-elevation-50));
+    border-color: var(--theme-elevation-150);
+  }
+
+  /* ---- blocks/array rows: ONE list card, rows divided by hairlines ---- */
+  .blocks-field__rows,
+  .array-field__draggable-rows {
+    gap: 0; /* stock puts air between rows; the hairlines divide instead */
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    background: var(--theme-elevation-0);
+    box-shadow: var(--pt-shadow-xs);
+    overflow: hidden;
+  }
+  /* dark: the list sits one step ABOVE the form card — never a darker well */
+  html[data-theme='dark'] .blocks-field__rows,
+  html[data-theme='dark'] .array-field__draggable-rows {
+    background: color-mix(in srgb, #fff 2%, var(--theme-elevation-50));
+    border-color: var(--theme-elevation-150);
+  }
+
+  /* rows inside the list shed all card chrome */
+  .blocks-field__rows .collapsible,
+  .array-field__draggable-rows .collapsible {
+    border-radius: 0;
+  }
+  .blocks-field__rows .collapsible--style-default,
+  .array-field__draggable-rows .collapsible--style-default,
+  html[data-theme='dark'] .blocks-field__rows .collapsible--style-default,
+  html[data-theme='dark'] .array-field__draggable-rows .collapsible--style-default {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  /* hairline between entries (the wrapper divs are the direct children) */
+  .blocks-field__rows > div + div,
+  .array-field__draggable-rows > div + div {
+    border-top: 1px solid var(--theme-elevation-100);
+  }
+  html[data-theme='dark'] .blocks-field__rows > div + div,
+  html[data-theme='dark'] .array-field__draggable-rows > div + div {
+    border-top-color: color-mix(in srgb, var(--theme-elevation-100) 55%, var(--theme-elevation-150));
+  }
+
+  /* dark: fields nested in LIFTED surfaces (row lists, group panels) sit
+   * FLAT on them — transparent boxes with their borders doing the work,
+   * never darker wells punched back into the raised surface. Wins over
+   * the forms-module focus background too (higher specificity, later in
+   * the cascade), so fields stay flat while being edited. */
+  html[data-theme='dark']
+    :is(.blocks-field__rows, .array-field__draggable-rows, .group-field--top-level)
+    :is(
+      .field-type input:not([type='checkbox']):not(.section-title__input),
+      .field-type textarea,
+      .rs__control,
+      .upload-field-card
+    ) {
+    background: transparent;
+  }
+  html[data-theme='dark']
+    :is(.blocks-field__rows, .array-field__draggable-rows, .group-field--top-level)
+    .upload-field-card {
+    border: 1px solid var(--pt-input-border);
+  }
+
+  /* the row being edited: a quiet neutral wash instead of a card ring */
+  .blocks-field__rows .collapsible--style-default:focus-within,
+  .array-field__draggable-rows .collapsible--style-default:focus-within {
+    background: color-mix(in srgb, var(--theme-elevation-500) 4%, transparent);
+  }
+
+  /* ---- composed header ---- */
+  .collapsible--style-default > .collapsible__toggle-wrap {
+    background: transparent;
+    padding: 9px 10px 9px 14px;
+    gap: 10px;
+    transition: background-color 0.12s ease;
+  }
+  .collapsible--style-default > .collapsible__toggle-wrap:hover {
+    background: color-mix(in srgb, var(--theme-elevation-500) 4%, transparent);
+  }
+
+  /* body joins through a hairline; the list bg shows through */
+  .collapsible__content {
+    background: transparent;
+    border-top: 1px solid var(--theme-elevation-100);
+    padding: 20px 18px;
+  }
+  html[data-theme='dark'] .blocks-field__rows .collapsible__content,
+  html[data-theme='dark'] .array-field__draggable-rows .collapsible__content {
+    border-top-color: color-mix(in srgb, var(--theme-elevation-100) 55%, var(--theme-elevation-150));
+  }
+
+  /* grip dots: quiet, wake on hover */
+  .collapsible__drag {
+    color: var(--theme-elevation-350);
+    transition: color 0.12s ease;
+  }
+  .collapsible__drag:hover {
+    color: var(--theme-elevation-700);
+  }
+
+  /* chevron + kebab: ghost icon buttons — no borders, no shadows */
+  .collapsible__indicator {
+    width: 26px;
+    height: 26px;
+    border: 0;
+    border-radius: var(--pt-radius-item);
+    background: transparent;
+    box-shadow: none;
+    color: var(--theme-elevation-450);
+  }
+  .collapsible__toggle-wrap .popup-button {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: var(--pt-radius-item);
+    background: transparent;
+    box-shadow: none;
+    color: var(--theme-elevation-450);
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+  }
+  .collapsible__toggle-wrap .popup-button:hover,
+  .collapsible__toggle-wrap .popup-button:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 12%, transparent);
+    color: var(--theme-text);
+  }
+  .collapsible__actions-wrap {
+    gap: 2px;
+  }
+
+  /* ---- blocks row header: № · icon tile · type title · ghost label ---- */
+  .blocks-field__block-header {
+    align-items: center;
+    gap: 12px;
+  }
+  /* the row number: muted tabular text — order info, not an accent chip */
+  .blocks-field__block-number {
+    min-width: 18px;
+    text-align: center;
+    color: var(--color-base-400);
+    font-size: var(--pt-text-xs);
+    font-weight: 550;
+    font-variant-numeric: tabular-nums;
+  }
+  html[data-theme='dark'] .blocks-field__block-number {
+    color: var(--color-base-550);
+  }
+
+  /* the block type reads as the row TITLE behind a neutral icon tile.
+   * Payload puts the slug on the pill (blocks-field__block-pill-<slug>),
+   * so per-block icons are a --pt-block-ico override away; unknown slugs
+   * fall back to the generic layers glyph. */
+  .blocks-field__block-pill,
+  .blocks-field__block-pill.pill--style-light {
+    --pt-block-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z'/%3E%3Cpath d='m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65'/%3E%3Cpath d='m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65'/%3E%3C/svg%3E");
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 0 0 38px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--theme-text);
+    font-size: var(--pt-text-base);
+    font-weight: 550;
+    line-height: 1.5;
+  }
+  .blocks-field__block-pill::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    translate: 0 -50%;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--pt-radius-item);
+    background: var(--theme-elevation-100);
+  }
+  .blocks-field__block-pill::after {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 50%;
+    translate: 0 -50%;
+    width: 14px;
+    height: 14px;
+    background: var(--color-base-550);
+    -webkit-mask: var(--pt-block-ico) center / contain no-repeat;
+    mask: var(--pt-block-ico) center / contain no-repeat;
+  }
+  html[data-theme='dark'] .blocks-field__block-pill::before {
+    background: var(--theme-elevation-150);
+  }
+  html[data-theme='dark'] .blocks-field__block-pill::after {
+    background: var(--color-base-400);
+  }
+  /* built-in glyphs for common slugs — projects add theirs the same way */
+  .blocks-field__block-pill-content {
+    --pt-block-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 6.1H3'/%3E%3Cpath d='M21 12.1H3'/%3E%3Cpath d='M15.1 18H3'/%3E%3C/svg%3E");
+  }
+  .blocks-field__block-pill-cta {
+    --pt-block-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 11 18-5v12L3 14v-3z'/%3E%3Cpath d='M11.6 16.8a3 3 0 1 1-5.8-1.6'/%3E%3C/svg%3E");
+  }
+  .blocks-field__block-pill-hero {
+    --pt-block-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='9' cy='9' r='2'/%3E%3Cpath d='m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21'/%3E%3C/svg%3E");
+  }
+
+  /* array row labels ("Image 01") — same title voice */
+  .array-field__row-header {
+    gap: 10px;
+  }
+  .row-label {
+    font-size: var(--pt-text-base);
+    font-weight: 550;
+    color: var(--theme-text);
+  }
+
+  /* the inline title editor ("Untitled"): a ghost SUBTITLE — text at rest,
+   * a soft field while editing. (Excluded from the generic input chrome.) */
+  .section-title__input {
+    font-weight: 450;
+    font-size: var(--pt-text-sm);
+    color: var(--theme-elevation-500);
+    border: 0;
+    border-radius: 6px;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+  }
+  .section-title__input:hover {
+    color: var(--theme-elevation-700);
+  }
+  .section-title__input:focus,
+  .section-title__input:focus-visible {
+    outline: none;
+    border: 0;
+    box-shadow: none;
+    background: color-mix(in srgb, var(--theme-elevation-500) 8%, transparent);
+    color: var(--theme-text);
+  }
+
+  /* ---- field header: a stronger section voice + chip actions ---- */
+  .array-field__title .field-label,
+  .blocks-field__heading-with-error .field-label {
+    font-size: var(--pt-text-sm);
+    font-weight: 600;
+    color: var(--theme-text);
+  }
+  .array-field__header-actions,
+  .blocks-field__header-actions {
+    align-items: center;
+    gap: 4px;
+  }
+  button.array-field__header-action,
+  button.blocks-field__header-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: var(--pt-radius-item);
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+    color: var(--theme-elevation-500);
+    cursor: pointer;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+  }
+  button.array-field__header-action:hover,
+  button.array-field__header-action:focus-visible,
+  button.blocks-field__header-action:hover,
+  button.blocks-field__header-action:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 8%, transparent);
+    color: var(--theme-text);
+  }
+  /* Collapse All / Show All get their glyphs (order: collapse, show, ⋯) */
+  .array-field__header-actions li:nth-child(1) > button::before,
+  .array-field__header-actions li:nth-child(2) > button::before,
+  .blocks-field__header-actions li:nth-child(1) > button::before,
+  .blocks-field__header-actions li:nth-child(2) > button::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    background: currentColor;
+    -webkit-mask: var(--pt-ico) center / contain no-repeat;
+    mask: var(--pt-ico) center / contain no-repeat;
+  }
+  .array-field__header-actions li:nth-child(1) > button,
+  .blocks-field__header-actions li:nth-child(1) > button {
+    --pt-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 20 5-5 5 5'/%3E%3Cpath d='m7 4 5 5 5-5'/%3E%3C/svg%3E");
+  }
+  .array-field__header-actions li:nth-child(2) > button,
+  .blocks-field__header-actions li:nth-child(2) > button {
+    --pt-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5'/%3E%3Cpath d='m7 9 5-5 5 5'/%3E%3C/svg%3E");
+  }
+
+  /* ---- "Add Layout" drawer: block-type pickers as shadcn cards ---- */
+  .thumbnail-card {
+    background: var(--theme-elevation-0);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-card);
+    box-shadow: var(--pt-shadow-xs);
+    overflow: hidden;
+    transition:
+      border-color 0.12s ease,
+      box-shadow 0.12s ease,
+      transform 0.12s ease;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .thumbnail-card:hover {
+      transform: translateY(-1px);
+    }
+  }
+  html[data-theme='dark'] .thumbnail-card {
+    background: var(--theme-elevation-100);
+  }
+  .thumbnail-card:hover,
+  .thumbnail-card:focus-visible {
+    border-color: color-mix(in srgb, var(--pt-accent) 45%, var(--theme-border-color));
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--pt-accent) 25%, transparent),
+      var(--pt-shadow-sm);
+  }
+  .thumbnail-card__label {
+    font-size: var(--pt-text-sm);
+    font-weight: 500;
+  }
+}
+/* ==================================================================== *
+ * FORM GRID — two-column field flow
+ *
+ * Stock Payload stacks every field full-width. The main fields column
+ * (and every nested group / block / array body inside it) becomes a
+ * 2-column grid on desktop: compact field types (text, number, email,
+ * select, date, checkbox, radio, relationship) pair up side by side —
+ * "Title | Slug" on one line — while wide surfaces (textarea, rich text,
+ * uploads, arrays, blocks, groups, code) keep the full row. Unknown or
+ * custom fields default to the FULL row, so nothing ever cramps.
+ * Scoped to the page root: drawers and the doc sidebar stay stacked.
+ * ==================================================================== */
+@layer payload {
+  @media (min-width: 1025px) {
+    /* the fields ROOT is itself a .render-fields — cover it and every
+     * nested one (groups, block/array bodies) with one alias. A `row`
+     * field's body is a .render-fields too, but the author already laid
+     * that one out: it keeps Payload's flex row so `admin.width` holds
+     * (#9) — see the row rules at the bottom. */
+    .template-default__wrap
+      > .collection-edit
+      :is(
+        .document-fields__fields.render-fields,
+        .document-fields__fields .render-fields:not(.row__fields)
+      ) {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--pt-field-gap, 22px) 20px;
+      align-items: start;
+    }
+    /* grid gap owns the rhythm — drop Payload's per-field margins */
+    .template-default__wrap
+      > .collection-edit
+      :is(
+        .document-fields__fields.render-fields,
+        .document-fields__fields .render-fields:not(.row__fields)
+      )
+      > .field-type {
+      margin-bottom: 0;
+      min-width: 0;
+      grid-column: 1 / -1; /* default: full row (safe for custom fields) */
+    }
+    /* hidden carriers must not leave empty grid cells */
+    .template-default__wrap
+      > .collection-edit
+      :is(
+        .document-fields__fields.render-fields,
+        .document-fields__fields .render-fields:not(.row__fields)
+      )
+      > [type='hidden'] {
+      display: none;
+    }
+
+    /* compact types share a row, two by two */
+    .template-default__wrap
+      > .collection-edit
+      :is(
+        .document-fields__fields.render-fields,
+        .document-fields__fields .render-fields:not(.row__fields)
+      )
+      > :is(
+        .field-type.text,
+        .field-type.number,
+        .field-type.email,
+        .field-type.select,
+        .field-type.checkbox,
+        .field-type.date-time-field,
+        .field-type.radio-group,
+        .field-type.relationship
+      ) {
+      grid-column: span 1;
+    }
+
+    /* toggles line up with the neighbouring input's box, not the cell
+     * center: the neighbour stacks label (~30px incl. margin) above a 40px
+     * control, so start-aligning with a label-height offset centers the
+     * 20px switch on the input row */
+    .template-default__wrap
+      > .collection-edit
+      :is(
+        .document-fields__fields.render-fields,
+        .document-fields__fields .render-fields:not(.row__fields)
+      )
+      > .field-type.checkbox {
+      align-self: start;
+      /* measured: label row + this offset puts the 20px switch's center
+       * exactly on the neighbouring 40px input's center line (and follows
+       * the control height when density shrinks it) */
+      padding-top: calc(35px + (var(--pt-ctl-h, 40px) - 40px) / 2);
+    }
+
+    /* react-select cells: keep the clear / chevron icons on the control's
+     * first line. Payload sizes a multi-value container to 100% + 5px, which
+     * leaves no room beside it, so as soon as the chips outgrow a half-width
+     * cell the indicators wrap underneath (and a long single value runs under
+     * them). Let the value container take the remaining space instead — the
+     * chips wrap inside it. (The control's own `flex-wrap` is react-select's
+     * unlayered emotion CSS; that half lives in overrides/unlayered.css.) */
+    .template-default__wrap
+      > .collection-edit
+      :is(
+        .document-fields__fields.render-fields,
+        .document-fields__fields .render-fields:not(.row__fields)
+      )
+      > :is(.field-type.select, .field-type.relationship)
+      .rs__value-container {
+      flex: 1 1 0;
+      min-width: 0;
+      width: auto;
+    }
+
+    /* Lexical renders its own nested field UIs — keep those stacked */
+    .template-default__wrap
+      > .collection-edit
+      .document-fields__fields
+      .rich-text-lexical
+      .render-fields {
+      display: block;
+    }
+    .template-default__wrap
+      > .collection-edit
+      .document-fields__fields
+      .rich-text-lexical
+      .render-fields
+      > .field-type {
+      margin-bottom: var(--spacing-field, var(--base));
+    }
+
+    /* `row` fields: Payload's own flex row (each child sized by
+     * --field-width, i.e. `admin.width`), only retuned to the grid's
+     * rhythm — no trailing margin (the grid gap spaces the row) and the
+     * same 20px column / 22px row gaps as the grid around it. The
+     * gutter is split as 10px either side of each child, so the widths
+     * still add up to exactly 100% of the row. */
+    .template-default__wrap
+      > .collection-edit
+      .document-fields__fields
+      .field-type.row
+      > .row__fields {
+      margin-bottom: 0;
+      row-gap: var(--pt-field-gap, 22px);
+    }
+    .template-default__wrap
+      > .collection-edit
+      .document-fields__fields
+      .field-type.row
+      > .row__fields:has(> :nth-child(2)) {
+      margin-inline: -10px;
+    }
+    .template-default__wrap
+      > .collection-edit
+      .document-fields__fields
+      .field-type.row
+      > .row__fields:has(> :nth-child(2))
+      > * {
+      flex-basis: calc(var(--field-width) - 20px);
+      margin-inline: 10px;
+    }
+  }
+}
+/* ==================================================================== *
+ * BUTTONS V2 — split buttons
+ *
+ * split buttons (e.g. Publish changes ▾): one continuous control — the
+ * main half keeps the start radius, the chevron half the end radius.
+ * ==================================================================== */
+@layer payload {
+  .btn--withPopup {
+    border-radius: var(--pt-radius-ctl);
+  }
+  .btn--withPopup .btn {
+    border-start-start-radius: var(--pt-radius-ctl);
+    border-end-start-radius: var(--pt-radius-ctl);
+  }
+  .btn--withPopup .popup-button {
+    border-start-end-radius: var(--pt-radius-ctl);
+    border-end-end-radius: var(--pt-radius-ctl);
+  }
+}
+
+/* ==================================================================== *
+ * DOC CONTROLS + LOCALIZER — header chrome
+ *
+ * The document toolbar's icon buttons (preview, live-preview, copy-locale)
+ * and the app-header locale switcher (hidden by default — its features
+ * live in the sidebar user menu, but the styles stay for configs that
+ * resurface it).
+ * ==================================================================== */
+@layer payload {
+  /* ---- icon buttons in the doc toolbar: quiet outline chips ---- */
+  .doc-controls__controls .btn--icon-only {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--theme-input-bg);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-ctl);
+    color: var(--theme-elevation-600);
+    transition:
+      border-color 0.12s ease,
+      background-color 0.12s ease,
+      color 0.12s ease;
+  }
+  .doc-controls__controls .btn--icon-only:hover,
+  .doc-controls__controls .btn--icon-only:focus-visible {
+    background: color-mix(in srgb, var(--theme-elevation-500) 8%, transparent);
+    border-color: var(--theme-elevation-300);
+    color: var(--theme-text);
+  }
+
+  /* ---- locale switcher in the app header: restyle Payload's own
+   * .localizer-button box (styling the popup trigger too created a broken
+   * double chip) ---- */
+  .localizer-button {
+    padding: 7px 14px;
+    background: var(--theme-input-bg);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--pt-radius-ctl);
+    color: var(--theme-elevation-600);
+    font-size: var(--pt-text-xs);
+    transition:
+      border-color 0.12s ease,
+      color 0.12s ease;
+  }
+  .localizer-button:hover {
+    border-color: var(--theme-elevation-300);
+    color: var(--theme-text);
+  }
+  /* keep breathing room between the locale chip and the account avatar */
+  .app-header__localizer {
+    margin-inline-end: 12px;
+  }
+}
+/* ==================================================================== *
+ * LIST HEADER — page top redesign
+ *
+ * The reference toolbar grammar: a calm title + muted description block,
+ * then ONE toolbar row = search field + Columns/Filters + the solid
+ * "Create New" action at its right end. The create button lives in the
+ * title row in the DOM; on desktop it is pinned onto the toolbar row
+ * (deterministic offsets: the toolbar always starts right after the
+ * header block), and the search bar reserves its width.
+ * ==================================================================== */
+@layer payload {
+  .list-header__content {
+    align-items: center;
+    /* the create button and the "N selected" bulk bar live in adjacent
+     * grid columns — without this they touch edge to edge */
+    column-gap: 20px;
+  }
+  .list-header__title-and-actions {
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+  /* calmer page title (shadcn text-2xl, not Payload's display size) */
+  .list-header__title {
+    font-size: var(--pt-text-2xl);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+  }
+
+  /* header-scoped: the create pill becomes the page's one solid action */
+  .list-header__title-actions {
+    margin-bottom: 0;
+    align-items: center;
+    gap: 16px; /* air between the create button and the "N selected" bar */
+  }
+  .list-header__title-actions .btn--style-pill {
+    --bg-color: var(--pt-accent);
+    --color: var(--pt-accent-contrast);
+    --hover-bg: var(--pt-accent-hover);
+    --hover-color: var(--pt-accent-contrast);
+    --btn-padding-block-start: 5px;
+    --btn-padding-block-end: 5px;
+    --btn-padding-inline-start: 14px;
+    --btn-padding-inline-end: 14px;
+    --btn-font-weight: 500;
+    box-shadow: var(--pt-shadow-xs);
+  }
+
+  /* muted description tucked right under the title (Payload pads the
+   * sub-header wrapper by 15px — remove it, keep a small gap of our own).
+   * Shared with the edit views' doc-header description. */
+  .collection-list .collection-list__sub-header {
+    padding-top: 0;
+  }
+  .custom-view-description {
+    margin-top: 4px;
+    color: var(--theme-elevation-500);
+    font-size: var(--pt-text-xs);
+    max-width: 72ch;
+  }
+  .collection-list .list-header {
+    padding-bottom: 0;
+    border-bottom: 0;
+    margin-bottom: 16px;
+  }
+
+  /* ---- desktop: dock the create button onto the toolbar row ----
+   * The toolbar (search bar) always starts 16px after the header block,
+   * so `top: 100% + 16px` lands exactly on it; the button box matches the
+   * search bar height and centers its content. The search bar gives up
+   * the reserved width so nothing overlaps. */
+  @media (min-width: 1025px) {
+    .collection-list {
+      /* space the search bar gives up for the docked actions; grows when a
+       * second action (e.g. Media's Bulk Upload) renders next to Create */
+      --pt-list-actions-reserve: 152px;
+    }
+    .collection-list:has(.list-header__title-actions > :nth-child(2)) {
+      --pt-list-actions-reserve: 296px;
+    }
+    .collection-list .list-header {
+      position: relative;
+    }
+    .collection-list .list-header__title-actions {
+      position: absolute;
+      inset-inline-end: 0;
+      top: calc(100% + 16px);
+      z-index: 3;
+      height: var(--pt-toolbar-h, 46px);
+      display: flex;
+      align-items: center;
+      gap: 8px; /* docked buttons sit as one tight group */
+    }
+    /* reserve action space only when at least one action renders */
+    .collection-list:has(.list-header__title-actions .btn) .search-bar {
+      width: calc(100% - var(--pt-list-actions-reserve));
+    }
+    .collection-list .search-bar {
+      min-height: var(--pt-toolbar-h, 46px);
+    }
+  }
+
+  /* secondary list actions (Bulk Upload & friends): the shadcn outline
+   * variant, so only Create New reads as THE primary action */
+  .list-header__title-actions .btn--style-pill:not(.list-create-new-doc__create-new-button) {
+    --bg-color: var(--theme-elevation-0);
+    --color: var(--theme-text);
+    --btn-border: 1px solid var(--theme-border-color);
+    --hover-bg: color-mix(in srgb, var(--theme-elevation-500) 8%, transparent);
+    --hover-color: var(--theme-text);
+    --btn-padding-block-start: 5px;
+    --btn-padding-block-end: 5px;
+    --btn-padding-inline-start: 14px;
+    --btn-padding-inline-end: 14px;
+    --btn-font-weight: 500;
+    box-shadow: var(--pt-shadow-xs);
+  }
+
+  /* ---- edit views (collections, globals, account): same grammar ----
+   * Title left, tabs as the right-side control, description below. The
+   * header/content separator is the doc-controls bar's hairline. */
+  .doc-header__title {
+    font-size: var(--pt-text-2xl);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .doc-header__header {
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+  }
+  .doc-header__after-header {
+    /* Payload pads this wrapper by up to .8×base — the description's own
+     * margin is enough */
+    padding-top: 0;
+  }
+  /* trim the oversized gap between title block and the controls bar */
+  .template-default__wrap > .doc-header {
+    padding-bottom: 12px;
+  }
+}
+/* ==================================================================== *
+ * MEDIA LIBRARY — grid view
+ *
+ * Upload collections get a grid/table switch (MediaListToggle, rendered by
+ * the plugin above the list table). While it says "grid", the list table is
+ * relaid as a card grid — pure CSS on Payload's own table markup, keyed off
+ * `:has(.pt-media-toggle[data-view='grid'])`, so sorting, selection,
+ * pagination and bulk actions keep working untouched:
+ *   · each row becomes a card — full-bleed thumbnail, filename, small meta
+ *   · the select checkbox floats over the artwork (visible on hover/checked;
+ *     a checked card gets an accent ring instead of the row wash)
+ *   · updatedAt surfaces as a dark glass chip over the image on hover
+ *   · every other column stays hidden but remains in the DOM
+ * ==================================================================== */
+@layer payload {
+  /* ---- the toggle itself: a compact segmented control, right-aligned ---- */
+  .pt-media-toggle {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    width: max-content;
+    margin-inline-start: auto;
+    margin-block: 2px 12px;
+    padding: 3px;
+    background: var(--theme-elevation-100);
+    border-radius: var(--pt-radius-ctl);
+  }
+  .pt-media-toggle__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    border-radius: calc(var(--pt-radius-ctl) - 2px);
+    color: var(--theme-elevation-500);
+    cursor: pointer;
+    transition:
+      background-color 0.12s ease,
+      color 0.12s ease;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+  .pt-media-toggle__btn:hover {
+    color: var(--theme-text);
+  }
+  .pt-media-toggle__btn--active {
+    background: var(--theme-elevation-0);
+    color: var(--theme-text);
+    box-shadow: var(--pt-shadow-xs);
+  }
+  html[data-theme='dark'] .pt-media-toggle__btn--active {
+    background: var(--theme-elevation-200);
+  }
+
+  /* ---- grid mode ---- */
+  .collection-list:has(.pt-media-toggle[data-view='grid']) {
+    /* the table card frame goes away — the grid brings its own cards */
+    .table {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      overflow: visible;
+    }
+    .table > table {
+      display: block;
+      width: 100%;
+    }
+    .table thead {
+      display: none;
+    }
+    .table tbody {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 14px;
+    }
+
+    /* row -> card */
+    .table tbody tr {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      column-gap: 8px;
+      background: var(--theme-elevation-0);
+      border: 1px solid var(--theme-border-color);
+      border-radius: var(--pt-radius-card);
+      overflow: hidden;
+      box-shadow: var(--pt-shadow-xs);
+      transition:
+        transform 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+    }
+    .table tbody tr:hover {
+      background: var(--theme-elevation-0);
+      border-color: var(--theme-elevation-300);
+      box-shadow: var(--pt-shadow-md);
+      transform: translateY(-2px);
+    }
+    /* checked card: accent ring, not the row wash */
+    .table tbody tr:has(.checkbox-input--checked),
+    .table tbody tr:has(.checkbox-input--checked):hover {
+      background: var(--theme-elevation-0);
+      border-color: color-mix(in srgb, var(--pt-accent) 55%, var(--theme-border-color));
+      box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--pt-accent) 30%, transparent),
+        var(--pt-shadow-xs);
+    }
+
+    /* hide every cell by default; opt the composed ones back in */
+    .table tbody td {
+      display: none;
+      border: 0;
+      padding: 0;
+    }
+
+    /* thumbnail + filename */
+    .table td.cell-filename {
+      display: block;
+      order: 1;
+      flex: 1 1 100%;
+      min-width: 0;
+    }
+    .table td.cell-filename > a,
+    .table td.cell-filename > span {
+      display: block;
+      min-width: 0;
+      text-decoration: none;
+    }
+    .table td.cell-filename .file {
+      display: block;
+    }
+    /* (the full-bleed thumbnail sizing lives UNLAYERED at the end of the
+     * file — Payload's Thumbnail stylesheet is unlayered and wins over any
+     * @layer rule) */
+    .table td.cell-filename .file__filename {
+      display: block;
+      margin: 0; /* Payload indents the filename next to the chip — not here */
+      padding: 10px 12px 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: var(--pt-text-sm);
+      font-weight: 550;
+      color: var(--theme-text);
+    }
+
+    /* small meta line under the filename (alt text, size, mime — whichever
+     * of those columns are enabled) */
+    .table td.cell-alt,
+    .table td.cell-filesize,
+    .table td.cell-mimeType {
+      display: block;
+      flex: 0 1 auto;
+      min-width: 0;
+      padding: 0 0 10px 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--theme-elevation-500);
+      font-size: var(--pt-text-xs);
+      font-weight: 500;
+    }
+    .table td.cell-alt {
+      order: 2;
+      max-width: 100%;
+    }
+    .table td.cell-filesize {
+      order: 3;
+    }
+    .table td.cell-mimeType {
+      order: 4;
+      padding-inline-end: 12px;
+    }
+
+    /* select checkbox floats over the artwork */
+    .table td.cell-_select {
+      display: flex;
+      position: absolute;
+      top: 10px;
+      inset-inline-start: 10px;
+      z-index: 2;
+      opacity: 0;
+      transition: opacity 0.12s ease;
+    }
+    .table tbody tr:hover td.cell-_select,
+    .table tbody tr:has(.checkbox-input--checked) td.cell-_select,
+    .table tbody tr:focus-within td.cell-_select {
+      opacity: 1;
+    }
+    .table td.cell-_select .checkbox-input__input {
+      background: var(--theme-elevation-0);
+      box-shadow: var(--pt-shadow-sm);
+    }
+    .table td.cell-_select .checkbox-input--checked .checkbox-input__input {
+      background: var(--pt-accent);
+    }
+
+    /* updatedAt: dark glass chip over the image, revealed on hover */
+    .table td.cell-updatedAt {
+      display: flex;
+      position: absolute;
+      top: 10px;
+      inset-inline-end: 10px;
+      z-index: 2;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgb(9 9 11 / 0.6);
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+      color: #fff;
+      font-size: var(--pt-text-2xs);
+      font-weight: 500;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.12s ease;
+      pointer-events: none;
+    }
+    .table tbody tr:hover td.cell-updatedAt {
+      opacity: 1;
+    }
+  }
+  html[data-theme='dark'] .collection-list:has(.pt-media-toggle[data-view='grid']) .table tbody tr,
+  html[data-theme='dark']
+    .collection-list:has(.pt-media-toggle[data-view='grid'])
+    .table
+    tbody
+    tr:hover {
+    background: var(--theme-elevation-50);
+  }
+}
+/* ==================================================================== *
+ * DENSITY — control heights, table rows, button padding
+ *
+ * Payload sizes these with fixed `base()` values compiled to px, so they
+ * can't follow a variable on their own. Each rule here re-declares one of
+ * them through a --pt-* density token whose fallback is Payload's own
+ * value — the default (`comfortable`) look is pixel-identical, and
+ * `density: 'compact'` only swaps the tokens. (Form-grid gaps and the view
+ * padding read the same tokens in their own modules.)
+ * ==================================================================== */
+@layer payload {
+  /* single-line text controls — Payload's formInput height is base(2) */
+  .field-type:is(.text, .email, .number, .password, .confirm-password, .point) input,
+  .date-time-picker .react-datepicker__input-container input {
+    height: var(--pt-ctl-h, 40px);
+  }
+
+  /* selects grow from their padding (height: auto), not a fixed height */
+  .react-select .rs__control {
+    padding-block: var(--pt-ctl-py, 7px);
+  }
+
+  /* large buttons (Save / Publish / Create new) */
+  .btn--size-large {
+    --btn-padding-block-start: var(--pt-btn-py, 8px);
+    --btn-padding-block-end: var(--pt-btn-py, 8px);
+  }
+
+  /* list rows */
+  .table th,
+  .table td {
+    padding-block: var(--pt-cell-py, 12px);
+  }
+}
+/* UNLAYERED on purpose: Payload's NoListResults stylesheet ships without a
+ * cascade layer (align-items: flex-start), and unlayered CSS beats every
+ * @layer rule — so the centering must be unlayered too. The class is DOUBLED
+ * (.no-results.no-results) to out-rank Payload at equal cascade level: on
+ * client-side navigation Next injects Payload's list chunk CSS *after* this
+ * stylesheet, and with equal specificity the later rules would win — which is
+ * exactly the "empty state slides left after navigating back" bug. */
+.no-results.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 56px 24px 48px;
+  background: var(--theme-elevation-0);
+  border: 1px dashed var(--theme-elevation-250);
+  border-radius: var(--pt-radius-card);
+  text-align: center;
+}
+html[data-theme='dark'] .no-results.no-results {
+  background: var(--theme-elevation-50);
+}
+.no-results.no-results > * {
+  margin-inline: auto; /* stays centered even if a wrapper stretches */
+}
+.no-results.no-results h3 {
+  margin: 0;
+  font-size: var(--pt-text-lg);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.no-results.no-results p {
+  margin: 6px auto 0;
+  max-width: 40ch;
+  color: var(--theme-elevation-500);
+  font-size: var(--pt-text-xs);
+}
+.no-results.no-results .no-results__actions {
+  justify-content: center;
+  margin-top: 14px;
+}
+
+/* UNLAYERED on purpose: Payload's Thumbnail stylesheet (`.thumbnail`,
+ * `.thumbnail--size-small`, its inner img) ships without a cascade layer —
+ * same story as NoListResults — so thumbnail SIZING must be unlayered to win.
+ * Higher specificity than Payload's own rules keeps these stable across
+ * client-navigation chunk-injection order. */
+
+/* table rows: the 34px bordered avatar chip
+ * (Payload caps .file__thumbnail with max-width — reset both maxes so the
+ * declared size is the real size in every view) */
+.table td .file .thumbnail {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  max-width: none;
+  max-height: none;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: var(--pt-radius-item);
+  background: var(--theme-elevation-100);
+  overflow: hidden;
+}
+.table td .file .thumbnail img {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  object-fit: cover;
+}
+
+/* media grid cards: full-bleed cover artwork with a soft hover zoom */
+.collection-list:has(.pt-media-toggle[data-view='grid']) .table td.cell-filename .file .thumbnail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  aspect-ratio: 4 / 3;
+  border: 0;
+  border-radius: 0;
+  background: var(--theme-elevation-100);
+  overflow: hidden;
+}
+.collection-list:has(.pt-media-toggle[data-view='grid'])
+  .table
+  td.cell-filename
+  .file
+  .thumbnail
+  img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border-radius: 0;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .collection-list:has(.pt-media-toggle[data-view='grid'])
+    .table
+    tbody
+    tr:hover
+    td.cell-filename
+    .file
+    .thumbnail
+    img {
+    transform: scale(1.04);
+  }
+}
+
+/* UNLAYERED on purpose: Monaco (code / JSON fields) injects its theme at
+ * runtime as an unlayered <style class="monaco-colors"> — its palette as
+ * --vscode-* variables on `.monaco-editor`, plus the current-line box
+ * painted straight from the theme. One class more specific than Monaco's
+ * rules keeps these ahead whichever stylesheet lands last. Syntax token
+ * colors stay Monaco's own (vs / vs-dark). The frame is in FORMS. */
+.code-editor .monaco-editor {
+  --vscode-editor-background: var(--theme-input-bg);
+  --vscode-editorGutter-background: var(--theme-input-bg);
+  --vscode-editorLineNumber-foreground: var(--theme-elevation-400);
+  --vscode-editorLineNumber-activeForeground: var(--theme-elevation-800);
+  --vscode-editor-selectionBackground: color-mix(in srgb, var(--pt-accent) 22%, transparent);
+  --vscode-editor-inactiveSelectionBackground: color-mix(
+    in srgb,
+    var(--pt-accent) 12%,
+    transparent
+  );
+  --vscode-focusBorder: transparent;
+}
+/* round the painted surface inside the frame's radius */
+.code-editor .monaco-editor,
+.code-editor .monaco-editor .overflow-guard {
+  border-radius: calc(var(--pt-radius-ctl) - 1px);
+}
+/* current line: a faint tint while editing, not vs's 2px gray box */
+.code-editor .monaco-editor .view-overlays .current-line,
+.code-editor .monaco-editor .margin-view-overlays .current-line {
+  border-color: transparent;
+}
+/* the caret is painted straight from the theme too, not from a variable */
+.code-editor .monaco-editor .cursors-layer .cursor {
+  background-color: var(--pt-accent);
+  border-color: var(--pt-accent);
+}
+.code-editor .monaco-editor.focused .view-overlays .current-line {
+  background: color-mix(in srgb, var(--theme-elevation-500) 6%, transparent);
+}
+.code-field.error .code-editor .monaco-editor {
+  --vscode-editor-background: var(--theme-error-50);
+  --vscode-editorGutter-background: var(--theme-error-50);
+}
+
+/* UNLAYERED on purpose: react-select styles its control with emotion
+ * (`.css-…-control { flex-wrap: wrap }`), which ships without a cascade layer
+ * and so beats the layered rules in layout/form-grid.css. In the two-column
+ * form grid a select / relationship control must not wrap, or its clear and
+ * chevron icons drop to a second line once the chips fill a half-width cell.
+ * The selector out-ranks emotion's single class on specificity, so source
+ * order does not matter. */
+@media (min-width: 1025px) {
+  .template-default__wrap
+    > .collection-edit
+    :is(
+      .document-fields__fields.render-fields,
+      .document-fields__fields .render-fields:not(.row__fields)
+    )
+    > :is(.field-type.select, .field-type.relationship)
+    .rs__control {
+    flex-wrap: nowrap;
+  }
+}
