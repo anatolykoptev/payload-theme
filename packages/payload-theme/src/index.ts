@@ -100,7 +100,7 @@ export const payloadTheme =
     // renders them into a <style> so a single hex recolors every rule.
     resolved.css = themeToCss(buildTheme(accent), { cssVariables })
 
-    // Neutral family, dark depth, density and frame: only non-default choices
+    // Neutral family, dark depth, density, frame and widgets position: only non-default choices
     // emit (the stylesheet carries the defaults). Prepended, so the accent
     // block's cssVariables come later and stay the ultimate escape hatch.
     const surfaceCss = surfaceToCss(resolved.surface)
@@ -200,6 +200,7 @@ export type {
   ThemePreset,
   ThemePresetDefinition,
   ThemeRadius,
+  ThemeWidgetsPosition,
 } from './options.js'
 export { THEME_I18N_NAMESPACE, THEME_TRANSLATIONS } from './translations/index.js'
 export type { ThemeTranslationKey, ThemeTranslations } from './translations/index.js'

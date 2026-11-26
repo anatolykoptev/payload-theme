@@ -23,6 +23,17 @@ All notable changes to `payload-theme` are documented here. The format follows
   your config defines. Overrides a browser saved while the customizer was on
   are no longer applied, so nobody is left with a look they can't reset.
 
+- **Dashboard widgets can sit above the collection cards.** For a project
+  whose widgets are the actionable part of the home screen, the new
+  `dashboard.widgetsPosition` option (`'bottom'` default, or `'top'`) sets
+  where they render. It is a surface option like `density` and `frame`: the
+  header customizer gets a **Widgets** switch (shown only when
+  `dashboard.widgets` is configured), the choice persists in the browser with
+  the other overrides and is replayed before first paint, and **Copy config**
+  writes it back out. The switch is pure CSS (`--pt-widgets-order` on a flex
+  column), so the DOM order, and with it the keyboard and screen-reader
+  order, stays cards first. Translated in all eight bundled languages.
+
 ### Fixed
 
 - **A select / relationship field's clear and chevron icons dropped to a second

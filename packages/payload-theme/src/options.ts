@@ -17,6 +17,7 @@ import type {
   ThemeFontKey,
   ThemeFrame,
   ThemeNeutral,
+  ThemeWidgetsPosition,
 } from './theme/index.js'
 
 import {
@@ -27,9 +28,16 @@ import {
   normalizeHex,
   resolveFont,
   SURFACE_DEFAULTS,
+  WIDGETS_POSITIONS,
 } from './theme/index.js'
 
-export type { ThemeDarkMode, ThemeDensity, ThemeFrame, ThemeNeutral } from './theme/index.js'
+export type {
+  ThemeDarkMode,
+  ThemeDensity,
+  ThemeFrame,
+  ThemeNeutral,
+  ThemeWidgetsPosition,
+} from './theme/index.js'
 
 /**
  * A one-word starting point: each preset is a coherent accent + radius +
@@ -131,6 +139,13 @@ export interface DashboardOptions {
    * the dashboard looks exactly as before.
    */
   widgets?: DashboardWidget[]
+  /**
+   * Where the widgets sit: `'bottom'` renders them below the built-in
+   * collection and global cards, `'top'` puts them above. This is the default
+   * the header customizer starts from; a user can still switch it there.
+   * @default 'bottom'
+   */
+  widgetsPosition?: ThemeWidgetsPosition
 }
 
 export interface LoginOptions {
@@ -209,7 +224,7 @@ export interface PayloadThemeOptions {
   avatar?: ThemeAvatarOption
   /** Sidebar navigation options. */
   nav?: NavOptions
-  /** Dashboard widget area (rendered below the built-in dashboard content). */
+  /** Dashboard widget area (below the built-in dashboard content unless `widgetsPosition` says otherwise). */
   dashboard?: DashboardOptions
   /** Copy shown on the login screen's brand panel. */
   login?: LoginOptions
@@ -243,7 +258,7 @@ export interface ResolvedThemeConfig {
   /** The preset the config named, or null when the options stand alone. */
   preset: null | ThemePreset
   radius: ThemeRadius
-  /** Neutral family, dark depth, density and frame — read by the header customizer. */
+  /** Neutral family, dark depth, density, frame and widgets position — read by the header customizer. */
   surface: SurfaceOptions
   /** Whether the header customizer renders and its saved overrides apply. */
   customizer: boolean
@@ -506,11 +521,13 @@ export function resolveOptions(options: PayloadThemeOptions): {
     dark: options.darkMode ?? SURFACE_DEFAULTS.dark,
     density: options.density ?? SURFACE_DEFAULTS.density,
     frame: options.frame ?? SURFACE_DEFAULTS.frame,
+    widgets: options.dashboard?.widgetsPosition ?? SURFACE_DEFAULTS.widgets,
   }
   assertOneOf(surface.neutral, NEUTRALS, 'neutral')
   assertOneOf(surface.dark, DARK_MODES, 'darkMode')
   assertOneOf(surface.density, DENSITIES, 'density')
   assertOneOf(surface.frame, FRAMES, 'frame')
+  assertOneOf(surface.widgets, WIDGETS_POSITIONS, 'dashboard.widgetsPosition')
 
   const customizer = options.customizer ?? true
   assert(

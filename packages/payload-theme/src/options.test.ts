@@ -206,13 +206,14 @@ describe('resolveOptions — customizer', () => {
   })
 })
 
-describe('resolveOptions — surface (neutral, darkMode, density, frame)', () => {
-  it('defaults to zinc / deep / comfortable / inset', () => {
+describe('resolveOptions — surface (neutral, darkMode, density, frame, widgets)', () => {
+  it('defaults to zinc / deep / comfortable / inset / widgets at the bottom', () => {
     expect(resolveOptions({}).resolved.surface).toEqual({
       dark: 'deep',
       density: 'comfortable',
       frame: 'inset',
       neutral: 'zinc',
+      widgets: 'bottom',
     })
   })
 
@@ -223,12 +224,14 @@ describe('resolveOptions — surface (neutral, darkMode, density, frame)', () =>
       frame: 'flat',
       neutral: 'stone',
       preset: 'ocean', // neutral: 'slate'
+      dashboard: { widgetsPosition: 'top' },
     })
     expect(resolved.surface).toEqual({
       dark: 'dim',
       density: 'compact',
       frame: 'flat',
       neutral: 'stone',
+      widgets: 'top',
     })
   })
 
@@ -239,5 +242,8 @@ describe('resolveOptions — surface (neutral, darkMode, density, frame)', () =>
     expect(() => resolveOptions({ darkMode: 'black' as 'dim' })).toThrow(/Invalid darkMode/)
     expect(() => resolveOptions({ density: 'tight' as 'compact' })).toThrow(/Invalid density/)
     expect(() => resolveOptions({ frame: 'boxed' as 'flat' })).toThrow(/Invalid frame/)
+    expect(() => resolveOptions({ dashboard: { widgetsPosition: 'left' as 'top' } })).toThrow(
+      /Invalid dashboard.widgetsPosition: 'left'.*bottom, top/,
+    )
   })
 })

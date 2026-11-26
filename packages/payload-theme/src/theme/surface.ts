@@ -30,23 +30,32 @@ export type ThemeDensity = 'comfortable' | 'compact'
  */
 export type ThemeFrame = 'flat' | 'inset'
 
+/**
+ * Where custom dashboard widgets sit relative to the built-in collection and
+ * global cards. @default 'bottom'
+ */
+export type ThemeWidgetsPosition = 'bottom' | 'top'
+
 export interface SurfaceOptions {
   dark: ThemeDarkMode
   density: ThemeDensity
   frame: ThemeFrame
   neutral: ThemeNeutral
+  widgets: ThemeWidgetsPosition
 }
 
 export const NEUTRALS: ThemeNeutral[] = ['zinc', 'slate', 'gray', 'neutral', 'stone']
 export const DARK_MODES: ThemeDarkMode[] = ['deep', 'dim']
 export const DENSITIES: ThemeDensity[] = ['comfortable', 'compact']
 export const FRAMES: ThemeFrame[] = ['inset', 'flat']
+export const WIDGETS_POSITIONS: ThemeWidgetsPosition[] = ['bottom', 'top']
 
 export const SURFACE_DEFAULTS: SurfaceOptions = {
   dark: 'deep',
   density: 'comfortable',
   frame: 'inset',
   neutral: 'zinc',
+  widgets: 'bottom',
 }
 
 type NeutralStep = 50 | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 950
@@ -192,6 +201,15 @@ export const FRAME_TOKENS: Record<ThemeFrame, Record<string, string>> = {
 }
 
 /**
+ * Flex `order` of `.pt-dash__widgets` against the card grid (order 0). The
+ * bottom value is the stylesheet's own fallback, so only `top` ever emits.
+ */
+export const WIDGETS_TOKENS: Record<ThemeWidgetsPosition, Record<string, string>> = {
+  bottom: { '--pt-widgets-order': '1' },
+  top: { '--pt-widgets-order': '-1' },
+}
+
+/**
  * Dark elevation remaps. `deep` is what `base/foundation.css` ships; `dim`
  * moves the card one rung up the ladder (zinc-900 instead of 950) and the
  * field it floats on to 850, keeping borders a step above the card.
@@ -256,6 +274,9 @@ export function surfaceToCss(surface: SurfaceOptions, opts: SurfaceCssOptions = 
   }
   if (full || surface.frame !== SURFACE_DEFAULTS.frame) {
     Object.assign(root, FRAME_TOKENS[surface.frame])
+  }
+  if (full || surface.widgets !== SURFACE_DEFAULTS.widgets) {
+    Object.assign(root, WIDGETS_TOKENS[surface.widgets])
   }
   // In full mode the root selector is doubled for specificity (the live
   // customizer), which would let its light `--theme-bg` win in dark mode too —
