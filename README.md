@@ -4,7 +4,7 @@
 
 **Make your Payload admin panel look custom-built — in 2 lines.**
 
-One accent color in, a complete shadcn-style redesign out: dashboard with sparklines and 30-day trends, ⌘K command palette with recents, grouped icon sidebar, split-screen login, sticky document outlines, and a live theme customizer with one-click presets, five typefaces and a copy-paste config generator — light *and* dark, in eight languages.
+One accent color in, a complete shadcn-style redesign out: dashboard with sparklines and 30-day trends, ⌘K command palette with recents, grouped icon sidebar, split-screen login, sticky document outlines, and a live theme customizer with one-click presets, five typefaces and a copy-paste config generator — light *and* dark, in nine languages.
 
 [![CI](https://github.com/liderbektas/payload-theme/actions/workflows/ci.yml/badge.svg)](https://github.com/liderbektas/payload-theme/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/payload-theme?color=0d9488)](https://www.npmjs.com/package/payload-theme)
@@ -41,7 +41,7 @@ Payload is the best headless CMS in the Node ecosystem — and its admin panel l
 - 🌗 **Dark mode designed, not inverted** — every surface sits on a zinc ladder; dark gets its own remapped scale.
 - ⚡ **Zero runtime cost** — color math runs once at startup and lands as CSS custom properties. SSR-safe, no FOUC.
 - 📱 **A real phone experience** — a sliding drawer over a blurred scrim, wrapping bulk actions, aligned cards. Editors approve from the couch.
-- 🌍 **Not half-English** — every string the theme adds is translated in eight languages and follows the panel language your editors picked.
+- 🌍 **Not half-English** — every string the theme adds is translated in nine languages and follows the panel language your editors picked.
 
 ## Installation
 
@@ -123,7 +123,7 @@ Everything persists in the browser; **Reset** returns to your config — and **C
 
 ### It speaks your panel's language
 
-If your panel isn't in English, the theme isn't either. Every string it adds — the sidebar's search pill, the palette and its groups, the dashboard captions and trend tooltips, "On this page", the customizer's own labels, the login copy — ships translated in **English, German, French, Spanish, Italian, Dutch, Portuguese and Turkish**, and follows whatever language the user picked on their Account page.
+If your panel isn't in English, the theme isn't either. Every string it adds — the sidebar's search pill, the palette and its groups, the dashboard captions and trend tooltips, "On this page", the customizer's own labels, the login copy — ships translated in **English, German, French, Spanish, Italian, Dutch, Portuguese, Russian and Turkish**, and follows whatever language the user picked on their Account page.
 
 Nothing to configure: the plugin merges a `payloadTheme:*` namespace into `config.i18n.translations` for every language Payload accepts. A language without a translation yet falls back to English rather than leaking raw keys, and anything you declare under that namespace yourself wins — which is also the supported way to reword the theme without touching a component:
 
@@ -281,8 +281,10 @@ payloadTheme({
   },
 
   // Sidebar + dashboard + palette icons per collection/global slug —
-  // any icon name from lucide.dev.
+  // any icon name from lucide.dev. `dockedMinWidth` docks the sidebar on
+  // laptops (see the options table).
   nav: {
+    dockedMinWidth: 1280,
     icons: {
       posts: 'newspaper',
       media: 'image',
@@ -324,6 +326,7 @@ payloadTheme({
 | `login.heading` | `string` | `'Welcome back'` | Big heading on the login brand panel. |
 | `login.tagline` | `string` | `'Sign in to manage your content.'` | Supporting line under the heading. |
 | `nav.icons` | `Record<slug, iconName>` | folder icon | Maps collections/globals to [lucide](https://lucide.dev) icons — sidebar, dashboard cards and palette. |
+| `nav.dockedMinWidth` | `number` (1025–1440) | — | Payload force-closes its nav at 1440px and below, and the theme shows it as a drawer there, so a 1440px laptop starts with no visible sidebar. Set this (e.g. `1280`) and from that width up to 1440px the sidebar is docked, open by default and collapsible with the header chip, as above 1440px. Below it the drawer stays. |
 | `dashboard.widgets` | `DashboardWidget[]` | `[]` | Custom components rendered below the built-in dashboard content. |
 | `cssVariables` | `Record<string, string>` | — | Escape hatch: override any raw `--pt-*` token directly. |
 
